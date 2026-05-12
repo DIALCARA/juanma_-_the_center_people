@@ -63,7 +63,7 @@ function extractGalleryItems(html) {
       id: `photo-${index + 1}`,
       src,
       thumb: normalizeGoogleImage(src, "w720-h540-no"),
-      alt: `Juanma $ The Center People en vivo ${index + 1}`
+      alt: `Juanma & The Center People en vivo ${index + 1}`
     }));
 }
 
@@ -156,5 +156,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Juanma $ The Center People: http://localhost:${PORT}`);
+  console.log(`Juanma & The Center People: http://localhost:${PORT}`);
 });

@@ -1,7 +1,7 @@
 {
   "name": "juanma-center-people-web",
   "version": "1.0.0",
-  "description": "Web oficial para Juanma $ The Center People con galeria sincronizada desde Google Photos.",
+  "description": "Web oficial para Juanma & The Center People con galeria sincronizada desde Google Photos.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

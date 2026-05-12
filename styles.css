@@ -374,6 +374,25 @@ h2 {
   border-radius: 8px;
 }
 
+.spotify-embed {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 30px;
+}
+
+.spotify-embed iframe {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: #000;
+}
+
+.spotify-link {
+  justify-self: start;
+  color: var(--sun);
+  font-weight: 800;
+}
+
 .player-display span {
   color: var(--sun);
   font-weight: 800;
