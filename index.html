@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Web oficial de Juanma $ The Center People, banda peruana de rock pop."
+    />
+    <title>Juanma $ The Center People</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#inicio" aria-label="Inicio">
+        <span class="brand-mark">J$</span>
+        <span>The Center People</span>
+      </a>
+      <nav class="main-nav" aria-label="Principal">
+        <a href="#galeria">Galeria</a>
+        <a href="#playlist">Playlist</a>
+        <a href="#fechas">Fechas</a>
+        <a href="#contacto">Contacto</a>
+      </nav>
+      <a class="nav-cta" href="#suscribete">Suscribete</a>
+    </header>
+
+    <main>
+      <section class="hero" id="inicio">
+        <div class="hero-media" aria-hidden="true">
+          <img id="heroImage" alt="" />
+          <div class="hero-noise"></div>
+        </div>
+        <div class="hero-content">
+          <p class="eyebrow">Rock pop peruano desde Lima</p>
+          <h1>Juanma $ The Center People</h1>
+          <p class="hero-copy">
+            Guitarras con brillo, coros para cantar fuerte y una energia de
+            escenario que se siente desde el primer golpe de bateria.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#playlist">Escuchar ahora</a>
+            <a class="button ghost" href="#galeria">Ver backstage</a>
+          </div>
+        </div>
+        <aside class="now-card" aria-label="Cancion destacada">
+          <span>Ahora sonando</span>
+          <strong>Centro de gravedad</strong>
+          <button class="mini-play" type="button" data-play-index="0">Play</button>
+        </aside>
+      </section>
+
+      <section class="intro-band" aria-label="Resumen de la banda">
+        <div>
+          <span class="metric">01</span>
+          <p>Sonido directo: rock pop, hooks luminosos y pulso peruano.</p>
+        </div>
+        <div>
+          <span class="metric">24/7</span>
+          <p>Galeria conectada al album publico para mostrar material nuevo.</p>
+        </div>
+        <div>
+          <span class="metric">LIVE</span>
+          <p>Lista preparada para demos, singles, ensayos y grabaciones.</p>
+        </div>
+      </section>
+
+      <section class="section split" id="galeria">
+        <div class="section-heading">
+          <p class="eyebrow">Archivo vivo</p>
+          <h2>Galeria interna</h2>
+          <p>
+            Las imagenes se cargan desde el album publico de Google Photos a
+            traves del servidor de la web, sin mandar al visitante fuera del
+            sitio.
+          </p>
+        </div>
+        <div class="gallery-shell">
+          <div class="gallery-toolbar">
+            <span id="galleryStatus">Sincronizando fotos...</span>
+            <button class="icon-button" id="refreshGallery" type="button" aria-label="Actualizar galeria">
+              ↻
+            </button>
+          </div>
+          <div class="gallery-grid" id="galleryGrid" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="section music" id="playlist">
+        <div class="section-heading">
+          <p class="eyebrow">Setlist digital</p>
+          <h2>Playlist</h2>
+          <p>
+            Un reproductor listo para reemplazar las demos por archivos finales
+            o enlaces de streaming cuando esten publicados.
+          </p>
+        </div>
+        <div class="player">
+          <div class="player-display">
+            <span id="trackNumber">Track 01</span>
+            <h3 id="trackTitle">Centro de gravedad</h3>
+            <p id="trackMeta">Single demo · 3:42</p>
+            <div class="progress">
+              <span id="progressBar"></span>
+            </div>
+          </div>
+          <div class="player-controls">
+            <button type="button" id="prevTrack" aria-label="Anterior">‹</button>
+            <button type="button" id="toggleTrack" class="play-button">Play</button>
+            <button type="button" id="nextTrack" aria-label="Siguiente">›</button>
+          </div>
+          <ol class="track-list" id="trackList"></ol>
+        </div>
+      </section>
+
+      <section class="section dates" id="fechas">
+        <div class="section-heading">
+          <p class="eyebrow">Proximamente</p>
+          <h2>Fechas y sesiones</h2>
+        </div>
+        <div class="date-list">
+          <article>
+            <time datetime="2026-06-14">14 Jun</time>
+            <div>
+              <h3>Sesion electrica</h3>
+              <p>Lima · Showcase privado</p>
+            </div>
+            <a href="#contacto">Invitar</a>
+          </article>
+          <article>
+            <time datetime="2026-07-05">05 Jul</time>
+            <div>
+              <h3>Noche centro</h3>
+              <p>Miraflores · Bar cultural</p>
+            </div>
+            <a href="#suscribete">Avisarme</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="section contact-zone" id="contacto">
+        <div class="contact-copy">
+          <p class="eyebrow">Booking, prensa y fans</p>
+          <h2>Contactenos</h2>
+          <p>
+            Para conciertos, colaboraciones, prensa o mensajes directos, deja
+            tus datos y el asunto. El formulario abre un correo listo para enviar.
+          </p>
+          <div class="socials" aria-label="Redes sociales">
+            <a href="https://www.instagram.com/" target="_blank" rel="noreferrer">Instagram</a>
+            <a href="https://www.tiktok.com/" target="_blank" rel="noreferrer">TikTok</a>
+            <a href="https://www.youtube.com/" target="_blank" rel="noreferrer">YouTube</a>
+            <a href="https://open.spotify.com/" target="_blank" rel="noreferrer">Spotify</a>
+          </div>
+        </div>
+        <form class="contact-form" id="contactForm">
+          <label>
+            Nombre
+            <input name="name" required autocomplete="name" />
+          </label>
+          <label>
+            Email
+            <input name="email" type="email" required autocomplete="email" />
+          </label>
+          <label>
+            Mensaje
+            <textarea name="message" rows="5" required></textarea>
+          </label>
+          <button class="button primary" type="submit">Enviar mensaje</button>
+        </form>
+      </section>
+
+      <section class="subscribe" id="suscribete">
+        <div>
+          <p class="eyebrow">Club Center</p>
+          <h2>Recibe lanzamientos, fotos nuevas y fechas secretas.</h2>
+        </div>
+        <form id="subscribeForm" class="subscribe-form">
+          <input type="email" name="email" placeholder="tu@email.com" required aria-label="Email" />
+          <button type="submit">Unirme</button>
+        </form>
+        <p id="subscribeMessage" class="form-message" role="status"></p>
+      </section>
+    </main>
+
+    <div class="lightbox" id="lightbox" aria-hidden="true">
+      <button type="button" id="closeLightbox" aria-label="Cerrar">×</button>
+      <img id="lightboxImage" alt="" />
+    </div>
+
+    <footer>
+      <span>Juanma $ The Center People</span>
+      <span>Rock pop peruano</span>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>

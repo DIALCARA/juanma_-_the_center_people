@@ -1,0 +1,21 @@
+{
+  "name": "juanma-center-people-web",
+  "version": "1.0.0",
+  "description": "Web oficial para Juanma $ The Center People con galeria sincronizada desde Google Photos.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "rock",
+    "pop",
+    "peru",
+    "band"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
