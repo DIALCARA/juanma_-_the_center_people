@@ -1,13 +1,27 @@
 :root {
-  --ink: #17130f;
-  --paper: #fff9ef;
-  --muted: #756d62;
-  --line: rgba(23, 19, 15, 0.14);
-  --red: #e43d30;
-  --sun: #f7b733;
-  --teal: #1f9a8a;
-  --night: #101820;
+  /* Palette (devspec) */
+  --color-bg: #0B0B0D;
+  --color-surface: #151519;
+  --color-text: #F2EEE7;
+  --color-muted: #A8A29A;
+  --color-primary: #C1121F;
+  --color-secondary: #D6A23A;
+  --color-border: #2A2A30;
+
+  /* Legacy tokens mapped for existing rules */
+  --night: var(--color-bg);
+  --paper: var(--color-surface);
+  --ink: var(--color-text);
+  --muted: var(--color-muted);
+  --line: rgba(42, 42, 48, 0.18);
+  --red: var(--color-primary);
+  --sun: var(--color-secondary);
+  --teal: var(--color-secondary);
   --white: #ffffff;
+
+  /* Typography */
+  --font-display: "Oswald", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
 }
 
 * {
@@ -21,8 +35,8 @@ html {
 body {
   margin: 0;
   color: var(--ink);
-  background: var(--paper);
-  font-family: Inter, system-ui, sans-serif;
+  background: var(--night);
+  font-family: var(--font-body);
 }
 
 img {
@@ -75,7 +89,7 @@ footer {
   color: var(--night);
   background: var(--sun);
   border-radius: 50%;
-  font-family: Anton, Impact, sans-serif;
+  font-family: var(--font-display);
 }
 
 .main-nav {
@@ -154,7 +168,7 @@ footer {
 h1,
 h2 {
   margin: 0;
-  font-family: Anton, Impact, sans-serif;
+  font-family: var(--font-display);
   font-weight: 400;
   line-height: 0.94;
 }
@@ -210,7 +224,7 @@ h2 {
   width: min(300px, calc(100% - 36px));
   padding: 18px;
   background: rgba(255, 249, 239, 0.92);
-  color: var(--ink);
+  color: var(--night);
   border-radius: 8px;
 }
 
@@ -263,7 +277,7 @@ h2 {
   display: block;
   margin-bottom: 18px;
   color: var(--red);
-  font-family: Anton, Impact, sans-serif;
+  font-family: var(--font-display);
   font-size: 3rem;
 }
 
@@ -369,8 +383,8 @@ h2 {
 
 .player {
   padding: clamp(20px, 4vw, 38px);
-  color: var(--white);
-  background: var(--ink);
+  color: var(--ink);
+  background: var(--paper);
   border-radius: 8px;
 }
 
@@ -493,7 +507,7 @@ h2 {
 
 .date-list time {
   color: var(--red);
-  font-family: Anton, Impact, sans-serif;
+  font-family: var(--font-display);
   font-size: 2rem;
 }
 
