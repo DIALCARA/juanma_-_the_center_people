@@ -52,6 +52,10 @@ desktop.ini
 *.swp
 *.swo
 
+# Claude Code: settings.local es personal de cada developer (paths absolutos
+# del PC y permisos aprobados interactivamente). settings.json sí se versiona.
+.claude/settings.local.json
+
 # Docker
 *.override.yml
 
