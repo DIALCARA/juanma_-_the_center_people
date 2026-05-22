@@ -1,0 +1,124 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+
+const { id } = Astro.params;
+---
+
+<BaseLayout title="Solicitar material" description="Solicitar material de prensa">
+  <section class="py-20 px-4 text-center" aria-label="Solicitar descarga">
+    <div class="max-w-3xl mx-auto">
+      <p class="font-heading text-red-band text-xs uppercase tracking-widest mb-3">Material de prensa</p>
+      <h1 class="font-heading text-4xl text-bone uppercase tracking-widest mb-6">
+        Solicitar material
+      </h1>
+      <p class="text-bone-muted font-light mb-12">
+        Completá el formulario para recibir el enlace de descarga por email.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-4 px-4 reveal" aria-label="Formulario de solicitud">
+    <div class="max-w-lg mx-auto">
+      <form id="download-form" novalidate>
+        <input type="hidden" name="asset_id" value={id} />
+
+        <div class="mb-6">
+          <label for="name" class="block font-heading text-bone uppercase tracking-wider text-xs mb-2">Nombre *</label>
+          <input
+            type="text" id="name" name="name" required minlength="2" maxlength="100" autocomplete="name"
+            class="w-full bg-black border border-urban-700 text-bone px-4 py-3 font-body text-sm focus:outline-none focus:border-red-band transition-colors placeholder-urban-600"
+            placeholder="Tu nombre"
+          />
+        </div>
+
+        <div class="mb-6">
+          <label for="email" class="block font-heading text-bone uppercase tracking-wider text-xs mb-2">Email *</label>
+          <input
+            type="email" id="email" name="email" required autocomplete="email"
+            class="w-full bg-black border border-urban-700 text-bone px-4 py-3 font-body text-sm focus:outline-none focus:border-red-band transition-colors placeholder-urban-600"
+            placeholder="tu@email.com"
+          />
+        </div>
+
+        <div class="mb-6">
+          <label for="organization" class="block font-heading text-bone uppercase tracking-wider text-xs mb-2">Medio / Organización</label>
+          <input
+            type="text" id="organization" name="organization" maxlength="150"
+            class="w-full bg-black border border-urban-700 text-bone px-4 py-3 font-body text-sm focus:outline-none focus:border-red-band transition-colors placeholder-urban-600"
+            placeholder="Nombre del medio o empresa (opcional)"
+          />
+        </div>
+
+        <div class="mb-8">
+          <label for="reason" class="block font-heading text-bone uppercase tracking-wider text-xs mb-2">Uso del material</label>
+          <textarea
+            id="reason" name="reason" rows="3" maxlength="500"
+            class="w-full bg-black border border-urban-700 text-bone px-4 py-3 font-body text-sm focus:outline-none focus:border-red-band transition-colors placeholder-urban-600 resize-vertical"
+            placeholder="Breve descripción de para qué usarás este material (opcional)"
+          ></textarea>
+        </div>
+
+        <div id="form-status" class="hidden mb-6 p-4 text-sm font-heading uppercase tracking-wider" role="alert" aria-live="polite"></div>
+
+        <!-- Aviso de privacidad -->
+        <p class="text-bone-muted text-xs mb-6 leading-relaxed">
+          Tu email se utiliza únicamente para enviarte el enlace de descarga si tu solicitud es aprobada.
+          No compartimos tus datos con terceros ni los usamos para otros fines.
+        </p>
+
+        <button type="submit" id="submit-btn" class="btn-primary w-full">Enviar solicitud</button>
+      </form>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  const form = document.getElementById("download-form") as HTMLFormElement;
+  const statusDiv = document.getElementById("form-status")!;
+  const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
+
+  function showStatus(message: string, type: "success" | "error") {
+    statusDiv.textContent = message;
+    statusDiv.className = `mb-6 p-4 text-sm font-heading uppercase tracking-wider border ${
+      type === "success"
+        ? "border-green-600 text-green-400 bg-green-900/20"
+        : "border-red-band text-red-band bg-red-900/20"
+    }`;
+  }
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Enviando...";
+
+    const assetId = (form.elements.namedItem("asset_id") as HTMLInputElement).value;
+    const data = {
+      download_asset_id: Number(assetId),
+      name: (form.elements.namedItem("name") as HTMLInputElement).value,
+      email: (form.elements.namedItem("email") as HTMLInputElement).value,
+      organization: (form.elements.namedItem("organization") as HTMLInputElement).value || undefined,
+      reason: (form.elements.namedItem("reason") as HTMLTextAreaElement).value || undefined,
+    };
+
+    try {
+      const res = await fetch("/api/submit-download-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        showStatus("¡Solicitud enviada! Recibirás el material en tu email si es aprobada.", "success");
+        form.reset();
+      } else {
+        showStatus("Error al enviar la solicitud. Intentá de nuevo.", "error");
+      }
+    } catch {
+      showStatus("Error de conexión.", "error");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Enviar solicitud";
+    }
+  });
+</script>

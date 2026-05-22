@@ -1,0 +1,136 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SpotifyEmbed from "../components/ui/SpotifyEmbed.astro";
+import EmptyState from "../components/ui/EmptyState.astro";
+import SectionUnavailable from "../components/ui/SectionUnavailable.astro";
+import { getMusic, getSectionInfo } from "../lib/api";
+
+const section = await getSectionInfo("musica");
+
+let musicData: any = null;
+if (section.isEnabled) {
+  try {
+    const res = await getMusic();
+    musicData = res.data;
+  } catch (e) {}
+}
+
+const releases = musicData?.releases ?? [];
+const spotifyUrl = musicData?.spotify_url ?? "";
+
+const artistIdMatch = spotifyUrl.match(/artist\/([A-Za-z0-9]+)/);
+const artistId = artistIdMatch?.[1] ?? "2lnewal0FLnYLAnziEcIgI";
+---
+
+<BaseLayout title={section.title || "Música"} description="Discografía y lanzamientos de Juanma & The Center People">
+  {!section.isEnabled && (
+    <SectionUnavailable title={section.title || "Música"} message={section.message} />
+  )}
+  {section.isEnabled && (
+    <Fragment>
+  <!-- CABECERA -->
+  <section class="py-20 px-4 text-center" aria-label="Música">
+    <div class="max-w-3xl mx-auto">
+      <p class="font-heading text-red-band text-xs uppercase tracking-widest mb-3">Discografía</p>
+      <h1 class="font-heading text-5xl md:text-6xl text-bone uppercase tracking-widest mb-6">
+        Música
+      </h1>
+      <p class="text-bone-muted font-light">
+        Escuchá nuestra música en Spotify y todas las plataformas.
+      </p>
+    </div>
+  </section>
+
+  <!-- PLAYER SPOTIFY -->
+  <section class="py-8 px-4 bg-black-soft reveal" aria-label="Reproductor de Spotify">
+    <div class="max-w-2xl mx-auto">
+      <SpotifyEmbed artistId={artistId} height={352} />
+      {spotifyUrl && (
+        <div class="text-center mt-6">
+          <a
+            href={spotifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-primary"
+            data-umami-event="click_spotify"
+          >
+            Abrir en Spotify
+          </a>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <!-- LANZAMIENTOS -->
+  {releases.length > 0 && (
+    <section class="py-16 px-4 reveal" aria-label="Lanzamientos">
+      <div class="max-w-6xl mx-auto">
+        <div class="flex items-center gap-4 mb-8">
+          <h2 class="section-title text-2xl">Lanzamientos</h2>
+          <div class="section-divider flex-1"></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {releases.map((release: any) => (
+            <article class="border border-urban-800 p-4 group hover:border-urban-600 transition-colors">
+              {release.cover_url && (
+                <div class="aspect-square mb-4 overflow-hidden">
+                  <img
+                    src={release.cover_url}
+                    alt={`Portada de ${release.title}`}
+                    width="400"
+                    height="400"
+                    loading="lazy"
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+              )}
+              <h3 class="font-heading text-bone uppercase tracking-wider text-sm mb-1">{release.title}</h3>
+              {release.release_date && (
+                <p class="text-bone-muted text-xs mb-3">
+                  {new Date(release.release_date).getFullYear()}
+                </p>
+              )}
+              {release.description && (
+                <p class="text-bone-muted text-xs leading-relaxed font-light mb-3">{release.description}</p>
+              )}
+              <div class="flex gap-3 flex-wrap">
+                {release.spotify_url && (
+                  <a
+                    href={release.spotify_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn-ghost text-xs"
+                    data-umami-event="click_release_spotify"
+                  >
+                    Spotify →
+                  </a>
+                )}
+                {release.youtube_url && (
+                  <a
+                    href={release.youtube_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn-ghost text-xs"
+                    data-umami-event="click_release_youtube"
+                  >
+                    YouTube →
+                  </a>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  {releases.length === 0 && (
+    <section class="py-16 px-4">
+      <div class="max-w-3xl mx-auto">
+        <EmptyState message="Los lanzamientos se publicarán próximamente." />
+      </div>
+    </section>
+  )}
+    </Fragment>
+  )}
+</BaseLayout>

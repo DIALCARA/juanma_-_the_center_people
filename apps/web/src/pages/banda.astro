@@ -1,0 +1,154 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import EmptyState from "../components/ui/EmptyState.astro";
+import SectionUnavailable from "../components/ui/SectionUnavailable.astro";
+import { getBand, getSectionInfo } from "../lib/api";
+
+const section = await getSectionInfo("banda");
+
+let bandData: any = null;
+if (section.isEnabled) {
+  try {
+    const res = await getBand();
+    bandData = res.data;
+  } catch (e) {}
+}
+
+const bio = bandData?.bio ?? {};
+const members = bandData?.members ?? [];
+const quickFacts = bandData?.quick_facts ?? [];
+---
+
+<BaseLayout title={section.title || "La Banda"} description={bio.bio_short || "Conocé a Juanma & The Center People"}>
+  {!section.isEnabled && (
+    <SectionUnavailable
+      title={section.title || "La Banda"}
+      message={section.message}
+    />
+  )}
+  {section.isEnabled && (
+    <Fragment>
+  <!-- CABECERA -->
+  <section class="py-20 px-4 text-center" aria-label="La banda">
+    <div class="max-w-3xl mx-auto">
+      <p class="font-heading text-red-band text-xs uppercase tracking-widest mb-3">Quiénes somos</p>
+      <h1 class="font-heading text-5xl md:text-6xl text-bone uppercase tracking-widest mb-6">
+        La Banda
+      </h1>
+      {bio.bio_short && (
+        <p class="text-bone-muted text-lg leading-relaxed font-light">{bio.bio_short}</p>
+      )}
+    </div>
+  </section>
+
+  <!-- BIO LARGA -->
+  {bio.bio_long && (
+    <section class="py-12 px-4 bg-black-soft reveal" aria-label="Historia">
+      <div class="max-w-3xl mx-auto">
+        <div class="flex items-center gap-4 mb-8">
+          <div class="section-divider flex-1"></div>
+          <h2 class="section-title text-xl">Historia</h2>
+          <div class="section-divider flex-1"></div>
+        </div>
+        <div class="text-bone-muted leading-relaxed font-light space-y-4 text-justify hyphens-auto">
+          {bio.bio_long.split("\n\n").map((p: string) => (
+            <p>{p}</p>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- DATOS RÁPIDOS -->
+  {quickFacts.length > 0 && (
+    <section class="py-12 px-4 reveal" aria-label="Datos rápidos">
+      <div class="max-w-4xl mx-auto">
+        <div class="flex items-center gap-4 mb-8">
+          <h2 class="section-title text-xl">En números</h2>
+          <div class="section-divider flex-1"></div>
+        </div>
+        <dl class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {quickFacts.map((fact: any) => (
+            <div class="text-center border border-urban-800 p-6">
+              <dt class="text-bone-muted text-xs font-heading uppercase tracking-wider mb-2">{fact.label}</dt>
+              <dd class="font-heading text-bone text-2xl uppercase">{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  )}
+
+  <!-- INTEGRANTES -->
+  <section class="py-12 px-4 bg-black-soft reveal" aria-label="Integrantes">
+    <div class="max-w-6xl mx-auto">
+      <div class="flex items-center gap-4 mb-8">
+        <div class="section-divider flex-1"></div>
+        <h2 class="section-title text-xl">Integrantes</h2>
+        <div class="section-divider flex-1"></div>
+      </div>
+      {members.length > 0 ? (
+        <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8" role="list">
+          {members.map((member: any, i: number) => {
+            // Centrar los items "huérfanos" en la última fila (solo en lg, 3 cols).
+            // N=1 → centrado (col 2). N=2 → extremos (col 1 y col 3). N=3 → flujo natural.
+            const total = members.length;
+            const remainder = total % 3;
+            const lastRowCount = remainder === 0 ? 3 : remainder;
+            const isInLastRow = i >= total - lastRowCount;
+            const indexInLastRow = i - (total - lastRowCount);
+
+            let extraClass = "";
+            if (isInLastRow && lastRowCount === 1) {
+              extraClass = "lg:col-start-2";
+            } else if (isInLastRow && lastRowCount === 2) {
+              extraClass = indexInLastRow === 0 ? "lg:col-start-1" : "lg:col-start-3";
+            }
+
+            return (
+            <li class:list={["text-center", extraClass]}>
+              {member.photo_url ? (
+                <div class="w-32 h-32 mx-auto rounded-full overflow-hidden mb-4 border border-urban-800">
+                  <img
+                    src={member.photo_url}
+                    alt={`Foto de ${member.name}`}
+                    width="128"
+                    height="128"
+                    loading="lazy"
+                    class="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div class="w-32 h-32 mx-auto rounded-full bg-urban-900 flex items-center justify-center mb-4 border border-urban-800">
+                  <span class="font-heading text-urban-600 text-3xl uppercase">{member.name.charAt(0)}</span>
+                </div>
+              )}
+              <h3 class="font-heading text-bone uppercase tracking-wider text-sm mb-1">{member.name}</h3>
+              <p class="text-red-band text-xs font-heading uppercase tracking-widest mb-2">{member.instrument || member.role}</p>
+              {member.bio && (
+                <p class="text-bone-muted text-xs leading-relaxed font-light">{member.bio}</p>
+              )}
+              {member.bio_long && (
+                <details class="mt-3 group text-left">
+                  <summary class="cursor-pointer list-none inline-flex items-center gap-1 text-xs font-heading uppercase tracking-wider text-bone-muted hover:text-bone transition-colors">
+                    <span class="group-open:hidden">Leer más</span>
+                    <span class="hidden group-open:inline">Leer menos</span>
+                    <span class="group-open:rotate-180 transition-transform" aria-hidden="true">↓</span>
+                  </summary>
+                  <div class="mt-3 text-bone-muted text-xs leading-relaxed font-light space-y-2 border-t border-urban-800 pt-3">
+                    {member.bio_long.split("\n\n").map((p: string) => <p>{p}</p>)}
+                  </div>
+                </details>
+              )}
+            </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <EmptyState message="Los integrantes se anunciarán próximamente." />
+      )}
+    </div>
+  </section>
+    </Fragment>
+  )}
+</BaseLayout>

@@ -1,0 +1,46 @@
+---
+interface Props {
+  event: {
+    event_date: string;
+    title: string;
+    venue?: string;
+    city?: string;
+    ticket_url?: string;
+  };
+}
+const { event } = Astro.props;
+const dateFormatted = new Date(event.event_date).toLocaleDateString("es-PE", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
+---
+
+<li class="flex items-center gap-6 border-b border-urban-800 pb-4">
+  <time
+    class="font-heading text-red-band text-sm uppercase tracking-wider whitespace-nowrap min-w-[90px]"
+    datetime={event.event_date}
+  >
+    {dateFormatted}
+  </time>
+  <div class="flex-1 min-w-0">
+    <p class="font-heading text-bone uppercase text-sm truncate">{event.title}</p>
+    {event.venue && (
+      <p class="text-bone-muted text-xs">
+        {event.venue}
+        {event.city && ` · ${event.city}`}
+      </p>
+    )}
+  </div>
+  {event.ticket_url && (
+    <a
+      href={event.ticket_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="btn-ghost text-xs whitespace-nowrap"
+      data-umami-event="click_ticket"
+    >
+      Entradas →
+    </a>
+  )}
+</li>

@@ -1,0 +1,140 @@
+---
+interface Props {
+  bandName: string;
+  siteData?: any;
+  sections?: Array<{ slug: string; is_enabled?: boolean }>;
+}
+const { bandName, siteData, sections = [] } = Astro.props;
+const currentPath = Astro.url.pathname;
+
+const allNavItems = [
+  { slug: "inicio",     label: "Inicio",       href: "/" },
+  { slug: "banda",      label: "Banda",        href: "/banda" },
+  { slug: "musica",     label: "Música",       href: "/musica" },
+  { slug: "fotos",      label: "Fotos",        href: "/fotos" },
+  { slug: "videos",     label: "Videos",       href: "/videos" },
+  { slug: "reels",      label: "Reels",        href: "/reels" },
+  { slug: "prensa-epk", label: "Prensa / EPK", href: "/prensa-epk" },
+  { slug: "fechas",     label: "Fechas",       href: "/fechas" },
+  { slug: "contacto",   label: "Contacto",     href: "/contacto" },
+];
+
+// Filtra el menú según las secciones habilitadas en el CMS.
+// El endpoint /api/public/sections devuelve TODAS con su flag is_enabled.
+// Si no llegó info (fallback por API caída), mostramos todo.
+// La sección "Inicio" siempre se muestra.
+const enabledSlugs = new Set(
+  sections.filter((s: any) => s.is_enabled !== false).map((s: any) => s.slug)
+);
+const navItems = sections.length === 0
+  ? allNavItems
+  : allNavItems.filter((item) => item.slug === "inicio" || enabledSlugs.has(item.slug));
+---
+
+<header class="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm border-b border-urban-800">
+  <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Navegación principal">
+    <div class="flex items-center justify-between h-16">
+
+      <!-- Logo / nombre banda -->
+      <a href="/" class="block hover:opacity-80 transition-opacity" aria-label={`${bandName} - inicio`}>
+        <img
+          src="/logo-light.png"
+          alt={bandName}
+          width="180"
+          height="40"
+          class="h-7 md:h-8 w-auto"
+        />
+      </a>
+
+      <!-- Menú desktop -->
+      <ul class="hidden lg:flex items-center gap-6" role="list">
+        {navItems.map((item) => (
+          <li>
+            <a
+              href={item.href}
+              class:list={[
+                "font-heading text-xs uppercase tracking-wider transition-colors duration-200",
+                currentPath === item.href
+                  ? "text-red-band"
+                  : "text-bone-muted hover:text-bone",
+              ]}
+              aria-current={currentPath === item.href ? "page" : undefined}
+            >
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      <!-- Botón Spotify (desktop) -->
+      {siteData?.spotify_url && (
+        <a
+          href={siteData.spotify_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hidden lg:block btn-primary text-xs py-2"
+          data-umami-event="click_spotify"
+        >
+          Escuchar en Spotify
+        </a>
+      )}
+
+      <!-- Botón menú móvil -->
+      <button
+        id="menu-toggle"
+        class="lg:hidden text-bone p-2"
+        aria-label="Abrir menú"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+      >
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Menú móvil -->
+    <div id="mobile-menu" class="lg:hidden hidden pb-4" aria-labelledby="menu-toggle">
+      <ul class="flex flex-col gap-2" role="list">
+        {navItems.map((item) => (
+          <li>
+            <a
+              href={item.href}
+              class:list={[
+                "block font-heading text-sm uppercase tracking-wider py-2 px-2 transition-colors",
+                currentPath === item.href ? "text-red-band" : "text-bone-muted hover:text-bone",
+              ]}
+            >
+              {item.label}
+            </a>
+          </li>
+        ))}
+        {siteData?.spotify_url && (
+          <li class="pt-2">
+            <a
+              href={siteData.spotify_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn-primary text-xs block text-center"
+            >
+              Escuchar en Spotify
+            </a>
+          </li>
+        )}
+      </ul>
+    </div>
+  </nav>
+</header>
+
+<!-- Spacer para compensar el header fijo -->
+<div class="h-16" aria-hidden="true"></div>
+
+<script>
+  const toggle = document.getElementById("menu-toggle");
+  const menu = document.getElementById("mobile-menu");
+  toggle?.addEventListener("click", () => {
+    const isOpen = menu?.classList.toggle("hidden") === false;
+    toggle.setAttribute("aria-expanded", String(isOpen));
+    toggle.setAttribute("aria-label", isOpen ? "Cerrar menú" : "Abrir menú");
+  });
+</script>

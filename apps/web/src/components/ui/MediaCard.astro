@@ -1,0 +1,42 @@
+---
+interface Props {
+  src: string;
+  alt: string;
+  title?: string;
+  href?: string;
+  aspectRatio?: string;
+}
+const { src, alt, title, href, aspectRatio = "aspect-square" } = Astro.props;
+---
+
+<div class={`card-media ${aspectRatio} group`}>
+  {href ? (
+    <a href={href} class="block w-full h-full">
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+      />
+      {title && (
+        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
+          <p class="text-bone text-xs font-heading uppercase tracking-wider">{title}</p>
+        </div>
+      )}
+    </a>
+  ) : (
+    <>
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+      />
+      {title && (
+        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
+          <p class="text-bone text-xs font-heading uppercase tracking-wider">{title}</p>
+        </div>
+      )}
+    </>
+  )}
+</div>

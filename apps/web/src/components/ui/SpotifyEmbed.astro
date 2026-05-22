@@ -1,0 +1,28 @@
+---
+interface Props {
+  artistId?: string;
+  trackId?: string;
+  albumId?: string;
+  height?: number;
+}
+const { artistId, trackId, albumId, height = 352 } = Astro.props;
+
+let embedSrc = "";
+if (artistId) embedSrc = `https://open.spotify.com/embed/artist/${artistId}`;
+else if (albumId) embedSrc = `https://open.spotify.com/embed/album/${albumId}`;
+else if (trackId) embedSrc = `https://open.spotify.com/embed/track/${trackId}`;
+---
+
+{embedSrc && (
+  <iframe
+    src={embedSrc}
+    width="100%"
+    height={height}
+    frameborder="0"
+    allowtransparency="true"
+    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+    loading="lazy"
+    title="Reproductor de Spotify"
+    class="rounded"
+  />
+)}

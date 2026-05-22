@@ -1,0 +1,72 @@
+# Entornos
+.env
+.env.local
+.env.deploy
+.env.*.local
+!.env.example
+!.env.local.example
+!.env.deploy.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+.cache/
+*.tsbuildinfo
+
+# Astro
+.astro/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+*.override.yml
+
+# Backups locales
+backups/
+
+# SQLite (no subir la base de datos)
+*.db
+*.sqlite
+*.sqlite3
+
+# Media (no subir archivos multimedia al repo)
+storage/media/images/*
+storage/media/videos/*
+storage/media/reels/*
+storage/media/downloads/*
+storage/media/thumbnails/*
+!storage/media/**/.gitkeep

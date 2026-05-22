@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "juanma-epk-api"
+version = "0.1.0"
+description = "API backend para Juanma & The Center People"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.5",
+    "uvicorn[standard]>=0.32.1",
+    "sqlalchemy>=2.0.36",
+    "alembic>=1.14.0",
+    "pydantic[email]>=2.11.0",
+    "pydantic-settings>=2.7.0",
+    "python-jose[cryptography]>=3.3.0",
+    "bcrypt>=4.2.0,<5.0.0",
+    "python-multipart>=0.0.12",
+    "pillow>=11.3.0",
+    "httpx>=0.28.0",
+    "slowapi>=0.1.9",
+    "aiofiles>=24.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.24.0",
+    "pytest-cov==6.0.0",
+    "httpx==0.28.0",
+    "ruff==0.8.3",
+    "mypy==1.13.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["data*", "alembic*", "tests*", "scripts*", "storage*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -1,0 +1,131 @@
+## Docker Compose — PRODUCCIÓN
+## Integra con el Traefik existente en el VPS (red nexus_main_net).
+## Uso: docker compose -f infra/docker-compose.prod.yml up -d
+
+services:
+
+  # ─── API (FastAPI) ─────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+      target: production
+    volumes:
+      - api_data:/app/data
+      - media_data:/media/juanma-center-people
+    env_file:
+      - ../.env
+    environment:
+      - APP_ENV=production
+      - DATABASE_URL=sqlite:////app/data/app.db
+      - MEDIA_ROOT=/media/juanma-center-people
+      - MEDIA_PUBLIC_URL=https://api.${DOMAIN}/media
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - traefik_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.juanma-api.rule=Host(`api.${DOMAIN}`)"
+      - "traefik.http.routers.juanma-api.entrypoints=websecure"
+      - "traefik.http.routers.juanma-api.tls.certresolver=${CERT_RESOLVER}"
+      - "traefik.http.services.juanma-api.loadbalancer.server.port=8000"
+      - "traefik.docker.network=${TRAEFIK_NETWORK}"
+
+  # ─── Web pública (Astro SSR) ───────────────────────────────────────────────
+  web:
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile
+    env_file:
+      - ../.env
+    environment:
+      - APP_ENV=production
+      - API_BASE_URL=http://api:8000
+      - PUBLIC_SITE_URL=https://www.${DOMAIN}
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - traefik_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.juanma-web.rule=Host(`www.${DOMAIN}`) || Host(`${DOMAIN}`)"
+      - "traefik.http.routers.juanma-web.entrypoints=websecure"
+      - "traefik.http.routers.juanma-web.tls.certresolver=${CERT_RESOLVER}"
+      - "traefik.http.services.juanma-web.loadbalancer.server.port=3000"
+      - "traefik.docker.network=${TRAEFIK_NETWORK}"
+      # Redirect dominio raíz a www
+      - "traefik.http.middlewares.juanma-www-redirect.redirectregex.regex=^https://${DOMAIN}/(.*)"
+      - "traefik.http.middlewares.juanma-www-redirect.redirectregex.replacement=https://www.${DOMAIN}/$${1}"
+      - "traefik.http.routers.juanma-web.middlewares=juanma-www-redirect"
+
+  # ─── Backoffice CMS (Next.js) ──────────────────────────────────────────────
+  admin:
+    build:
+      context: ../apps/admin
+      dockerfile: Dockerfile
+    env_file:
+      - ../.env
+    environment:
+      - APP_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.${DOMAIN}
+      - NEXTAUTH_URL=https://admin.${DOMAIN}
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - traefik_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.juanma-admin.rule=Host(`admin.${DOMAIN}`)"
+      - "traefik.http.routers.juanma-admin.entrypoints=websecure"
+      - "traefik.http.routers.juanma-admin.tls.certresolver=${CERT_RESOLVER}"
+      - "traefik.http.services.juanma-admin.loadbalancer.server.port=3001"
+      - "traefik.docker.network=${TRAEFIK_NETWORK}"
+
+  # ─── Analytics (Umami) ────────────────────────────────────────────────────
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    environment:
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
+      DATABASE_TYPE: postgresql
+      APP_SECRET: ${UMAMI_APP_SECRET}
+    depends_on:
+      - umami-db
+    restart: unless-stopped
+    networks:
+      - traefik_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.juanma-umami.rule=Host(`analytics.${DOMAIN}`)"
+      - "traefik.http.routers.juanma-umami.entrypoints=websecure"
+      - "traefik.http.routers.juanma-umami.tls.certresolver=${CERT_RESOLVER}"
+      - "traefik.http.services.juanma-umami.loadbalancer.server.port=3000"
+      - "traefik.docker.network=${TRAEFIK_NETWORK}"
+
+  umami-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD}
+    volumes:
+      - umami_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - traefik_net
+
+volumes:
+  api_data:
+  media_data:
+  umami_db_data:
+
+networks:
+  traefik_net:
+    external: true
+    name: ${TRAEFIK_NETWORK}

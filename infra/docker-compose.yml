@@ -1,0 +1,92 @@
+## Docker Compose — DESARROLLO LOCAL
+## Levanta todos los servicios con puertos directos (sin Traefik).
+## Uso: docker compose -f infra/docker-compose.yml up -d
+
+services:
+
+  # ─── API (FastAPI) ─────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+      target: builder  # usa stage builder para hot reload
+    volumes:
+      - ../apps/api:/app           # hot reload
+      - api_data:/app/data
+      - media_data:/media/juanma-center-people
+    env_file:
+      - ../.env
+    environment:
+      - DATABASE_URL=sqlite:////app/data/app.db
+      - MEDIA_ROOT=/media/juanma-center-people
+    ports:
+      - "8000:8000"
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ─── Web pública (Astro SSR) ───────────────────────────────────────────────
+  web:
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile
+    env_file:
+      - ../.env
+    environment:
+      - API_BASE_URL=http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # ─── Backoffice CMS (Next.js) ──────────────────────────────────────────────
+  admin:
+    build:
+      context: ../apps/admin
+      dockerfile: Dockerfile
+    env_file:
+      - ../.env
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    ports:
+      - "3001:3001"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # ─── Analytics (Umami) ────────────────────────────────────────────────────
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    ports:
+      - "3002:3000"
+    environment:
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
+      DATABASE_TYPE: postgresql
+      APP_SECRET: ${UMAMI_APP_SECRET}
+    depends_on:
+      - umami-db
+    restart: unless-stopped
+
+  umami-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD}
+    volumes:
+      - umami_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  api_data:
+  media_data:
+  umami_db_data:

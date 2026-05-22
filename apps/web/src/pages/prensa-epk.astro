@@ -1,0 +1,174 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import QuoteCard from "../components/ui/QuoteCard.astro";
+import EmptyState from "../components/ui/EmptyState.astro";
+import SectionUnavailable from "../components/ui/SectionUnavailable.astro";
+import { getPressEpk, getSectionInfo } from "../lib/api";
+
+const section = await getSectionInfo("prensa-epk");
+
+let epkData: any = null;
+if (section.isEnabled) {
+  try {
+    const res = await getPressEpk();
+    epkData = res.data;
+  } catch (e) {}
+}
+
+const bio = epkData?.bio ?? {};
+const quickFacts = epkData?.quick_facts ?? [];
+const pressQuotes = epkData?.press_quotes ?? [];
+const downloads = epkData?.downloads ?? [];
+---
+
+<BaseLayout
+  title={section.title || "Prensa / EPK"}
+  description="Kit de prensa, bio oficial, fotos y rider técnico de Juanma & The Center People"
+>
+  {!section.isEnabled && (
+    <SectionUnavailable title={section.title || "Prensa / EPK"} message={section.message} />
+  )}
+  {section.isEnabled && (
+    <Fragment>
+  <!-- CABECERA -->
+  <section class="py-20 px-4 text-center" aria-label="Prensa y EPK">
+    <div class="max-w-3xl mx-auto">
+      <p class="font-heading text-red-band text-xs uppercase tracking-widest mb-3">Para medios y productores</p>
+      <h1 class="font-heading text-5xl md:text-6xl text-bone uppercase tracking-widest mb-6">
+        Prensa / EPK
+      </h1>
+      <p class="text-bone-muted font-light">
+        Material oficial para medios de comunicación, promotores y productores.
+      </p>
+    </div>
+  </section>
+
+  <!-- BIO OFICIAL -->
+  {bio.bio_short && (
+    <section class="py-12 px-4 bg-black-soft reveal" aria-label="Bio oficial">
+      <div class="max-w-3xl mx-auto">
+        <div class="flex items-center gap-4 mb-8">
+          <div class="section-divider flex-1"></div>
+          <h2 class="section-title text-xl">Bio oficial</h2>
+          <div class="section-divider flex-1"></div>
+        </div>
+        <p class="text-bone-muted leading-relaxed font-light mb-4">{bio.bio_short}</p>
+        {bio.bio_long && (
+          <details class="group">
+            <summary class="btn-ghost text-xs cursor-pointer list-none inline-flex items-center gap-2">
+              <span>Leer bio completa</span>
+              <span class="group-open:rotate-180 transition-transform">↓</span>
+            </summary>
+            <div class="mt-4 text-bone-muted leading-relaxed font-light space-y-4 border-l border-urban-800 pl-4">
+              {bio.bio_long.split("\n\n").map((p: string) => (
+                <p>{p}</p>
+              ))}
+            </div>
+          </details>
+        )}
+      </div>
+    </section>
+  )}
+
+  <!-- DATOS RÁPIDOS -->
+  {quickFacts.length > 0 && (
+    <section class="py-12 px-4 reveal" aria-label="Datos rápidos">
+      <div class="max-w-4xl mx-auto">
+        <div class="flex items-center gap-4 mb-8">
+          <h2 class="section-title text-xl">En números</h2>
+          <div class="section-divider flex-1"></div>
+        </div>
+        <dl class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {quickFacts.map((fact: any) => (
+            <div class="text-center border border-urban-800 p-4">
+              <dt class="text-bone-muted text-xs font-heading uppercase tracking-wider mb-1">{fact.label}</dt>
+              <dd class="font-heading text-bone text-xl uppercase">{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  )}
+
+  <!-- PRENSA Y CITAS -->
+  {pressQuotes.length > 0 && (
+    <section class="py-12 px-4 bg-black-soft reveal" aria-label="Prensa">
+      <div class="max-w-3xl mx-auto">
+        <div class="flex items-center gap-4 mb-8">
+          <div class="section-divider flex-1"></div>
+          <h2 class="section-title text-xl">Prensa</h2>
+          <div class="section-divider flex-1"></div>
+        </div>
+        <div class="space-y-8">
+          {pressQuotes.map((q: any) => (
+            <QuoteCard
+              quote={q.quote}
+              author={q.author}
+              mediaName={q.media_name}
+              url={q.url}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- MATERIAL DESCARGABLE -->
+  <section class="py-12 px-4 reveal" aria-label="Material descargable">
+    <div class="max-w-4xl mx-auto">
+      <div class="flex items-center gap-4 mb-8">
+        <h2 class="section-title text-xl">Material descargable</h2>
+        <div class="section-divider flex-1"></div>
+      </div>
+      {downloads.length > 0 ? (
+        <ul class="space-y-4" role="list">
+          {downloads.map((asset: any) => (
+            <li class="flex items-center justify-between gap-6 border border-urban-800 p-4 hover:border-urban-600 transition-colors">
+              <div class="min-w-0">
+                <h3 class="font-heading text-bone uppercase tracking-wider text-sm truncate">{asset.title}</h3>
+                {asset.description && (
+                  <p class="text-bone-muted text-xs mt-1 font-light">{asset.description}</p>
+                )}
+              </div>
+              {asset.access_type === "public" && asset.file_url ? (
+                <a
+                  href={asset.file_url}
+                  download
+                  class="btn-ghost text-xs whitespace-nowrap"
+                  data-umami-event="click_download_public"
+                >
+                  Descargar →
+                </a>
+              ) : (
+                <a
+                  href={`/prensa-epk/solicitar/${asset.id}`}
+                  class="btn-ghost text-xs whitespace-nowrap"
+                  data-umami-event="request_download"
+                >
+                  Solicitar →
+                </a>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState message="El material de prensa estará disponible próximamente." />
+      )}
+    </div>
+  </section>
+
+  <!-- CONTACTO PRENSA -->
+  <section class="py-12 px-4 bg-black-soft reveal" aria-label="Contacto de prensa">
+    <div class="max-w-3xl mx-auto text-center border border-urban-800 p-10">
+      <h2 class="section-title text-2xl mb-4">Contacto de prensa</h2>
+      <p class="text-bone-muted mb-6 font-light">
+        Para entrevistas, reseñas o consultas de medios escribinos directamente.
+      </p>
+      <a href="/contacto?tipo=prensa" class="btn-primary" data-umami-event="click_contact_press">
+        Contacto de prensa
+      </a>
+    </div>
+  </section>
+    </Fragment>
+  )}
+</BaseLayout>
