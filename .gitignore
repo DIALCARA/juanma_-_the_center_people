@@ -58,15 +58,25 @@ desktop.ini
 # Backups locales
 backups/
 
-# SQLite (no subir la base de datos)
+# SQLite (no subir la base de datos ni sus archivos WAL/shm)
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
-*.sqlite3
+*.sqlite*
+apps/api/data/
 
-# Media (no subir archivos multimedia al repo)
+# Carpeta media en raíz: ignorar contenido pero conservar estructura con .gitkeep
 storage/media/images/*
 storage/media/videos/*
 storage/media/reels/*
 storage/media/downloads/*
 storage/media/thumbnails/*
 !storage/media/**/.gitkeep
+
+# Carpeta storage que uvicorn local crea por bug del MEDIA_ROOT relativo
+apps/api/storage/
+
+# Archivos pesados que no deben ir al repo (el sitio los usa pero se manejan aparte)
+apps/web/public/hero-bg.*
+apps/web/public/logo-source.png
