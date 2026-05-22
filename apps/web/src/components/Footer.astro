@@ -1,0 +1,70 @@
+---
+interface Props {
+  siteData?: any;
+}
+const { siteData } = Astro.props;
+const year = new Date().getFullYear();
+
+const socials = [
+  { label: "Spotify", url: siteData?.spotify_url, event: "click_spotify" },
+  { label: "Instagram", url: siteData?.instagram_url, event: "click_instagram" },
+  { label: "TikTok", url: siteData?.tiktok_url, event: "click_tiktok" },
+  { label: "YouTube", url: siteData?.youtube_url, event: "click_youtube" },
+  { label: "Facebook", url: siteData?.facebook_url, event: "click_facebook" },
+].filter((s) => s.url);
+---
+
+<footer class="border-t border-urban-800 mt-20 py-12 px-4">
+  <div class="max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+
+      <!-- Nombre banda -->
+      <div class="text-center md:text-left">
+        <p class="font-heading text-bone uppercase tracking-widest text-sm">
+          {siteData?.band_name ?? "Juanma & The Center People"}
+        </p>
+        <p class="text-bone-muted text-xs mt-1">
+          {siteData?.subgenre ?? "Rock alternativo peruano"} · {siteData?.city ?? "Lima"}, {siteData?.country ?? "Perú"}
+        </p>
+      </div>
+
+      <!-- Redes sociales -->
+      {socials.length > 0 && (
+        <nav aria-label="Redes sociales">
+          <ul class="flex items-center gap-4" role="list">
+            {socials.map((s) => (
+              <li>
+                <a
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-bone-muted hover:text-bone text-xs font-heading uppercase tracking-wider transition-colors"
+                  data-umami-event={s.event}
+                >
+                  {s.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+
+      <!-- Copyright -->
+      <p class="text-urban-600 text-xs">
+        &copy; {year} {siteData?.band_name ?? "Juanma & The Center People"}
+      </p>
+    </div>
+
+    <!-- Contacto prensa/booking -->
+    {(siteData?.booking_email || siteData?.press_email) && (
+      <div class="mt-6 pt-6 border-t border-urban-900 flex flex-col sm:flex-row gap-4 text-xs text-bone-muted">
+        {siteData.booking_email && (
+          <span>Booking: <a href={`mailto:${siteData.booking_email}`} class="hover:text-bone transition-colors">{siteData.booking_email}</a></span>
+        )}
+        {siteData.press_email && (
+          <span>Prensa: <a href={`mailto:${siteData.press_email}`} class="hover:text-bone transition-colors">{siteData.press_email}</a></span>
+        )}
+      </div>
+    )}
+  </div>
+</footer>

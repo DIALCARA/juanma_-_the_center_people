@@ -1,0 +1,53 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  ogImage?: string;
+  noindex?: boolean;
+  siteData?: any;
+}
+
+const { title, description, ogImage, noindex = false, siteData } = Astro.props;
+const canonical = new URL(Astro.url.pathname, import.meta.env.PUBLIC_SITE_URL || "http://localhost:3000").toString();
+const defaultOg = ogImage || `${import.meta.env.PUBLIC_SITE_URL || ""}/og-default.jpg`;
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+
+<!-- Open Graph -->
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={defaultOg} />
+<meta property="og:url" content={canonical} />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="es_PE" />
+<meta property="og:site_name" content={siteData?.band_name ?? "Juanma & The Center People"} />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={defaultOg} />
+
+<!-- JSON-LD MusicGroup -->
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "MusicGroup",
+  "name": siteData?.band_name ?? "Juanma & The Center People",
+  "description": description,
+  "url": import.meta.env.PUBLIC_SITE_URL ?? "http://localhost:3000",
+  "genre": siteData?.subgenre ?? "Rock alternativo peruano",
+  "foundingLocation": {
+    "@type": "Place",
+    "name": siteData?.city ?? "Lima",
+    "addressCountry": "PE",
+  },
+  "sameAs": [
+    siteData?.spotify_url,
+    siteData?.youtube_url,
+    siteData?.instagram_url,
+  ].filter(Boolean),
+})} />

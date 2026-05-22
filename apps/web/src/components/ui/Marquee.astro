@@ -1,0 +1,22 @@
+---
+interface Props {
+  items: string[];
+}
+const { items } = Astro.props;
+
+// Duplicamos los items para que el loop sea continuo sin "salto" visible.
+const loop = [...items, ...items];
+---
+
+{items.length > 0 && (
+  <div class="marquee bg-red-band/90 text-bone py-3 border-y border-red-dark" aria-label="Novedades">
+    <div class="marquee__track font-heading uppercase tracking-widest text-sm">
+      {loop.map((item) => (
+        <span class="inline-flex items-center gap-3">
+          <span aria-hidden="true">★</span>
+          {item}
+        </span>
+      ))}
+    </div>
+  </div>
+)}

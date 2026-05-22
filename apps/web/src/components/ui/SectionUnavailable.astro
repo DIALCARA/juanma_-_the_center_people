@@ -1,0 +1,24 @@
+---
+interface Props {
+  title: string;
+  message?: string;
+}
+const { title, message } = Astro.props;
+
+// Devolver 410 Gone (mejor que 404: el recurso EXISTÍA pero fue retirado intencionalmente)
+Astro.response.headers.set("X-Robots-Tag", "noindex");
+Astro.response.status = 410;
+---
+
+<section class="min-h-[60vh] flex items-center justify-center px-4 py-20" aria-label="Sección no disponible">
+  <div class="max-w-md mx-auto text-center">
+    <p class="font-heading text-red-band text-xs uppercase tracking-widest mb-4">No disponible</p>
+    <h1 class="font-heading text-3xl md:text-4xl text-bone uppercase tracking-widest mb-6">
+      {title}
+    </h1>
+    <p class="text-bone-muted font-light leading-relaxed mb-8">
+      {message || "Esta sección está temporalmente fuera de línea. Volvé a revisar más adelante."}
+    </p>
+    <a href="/" class="btn-ghost">← Volver al inicio</a>
+  </div>
+</section>

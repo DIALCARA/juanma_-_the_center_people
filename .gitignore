@@ -1,0 +1,82 @@
+# Entornos
+.env
+.env.local
+.env.deploy
+.env.*.local
+!.env.example
+!.env.local.example
+!.env.deploy.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+.cache/
+*.tsbuildinfo
+
+# Astro
+.astro/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+*.override.yml
+
+# Backups locales
+backups/
+
+# SQLite (no subir la base de datos ni sus archivos WAL/shm)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite*
+apps/api/data/
+
+# Carpeta media en raíz: ignorar contenido pero conservar estructura con .gitkeep
+storage/media/images/*
+storage/media/videos/*
+storage/media/reels/*
+storage/media/downloads/*
+storage/media/thumbnails/*
+!storage/media/**/.gitkeep
+
+# Carpeta storage que uvicorn local crea por bug del MEDIA_ROOT relativo
+apps/api/storage/
+
+# Archivos pesados que no deben ir al repo (el sitio los usa pero se manejan aparte)
+apps/web/public/hero-bg.*
+apps/web/public/logo-source.png

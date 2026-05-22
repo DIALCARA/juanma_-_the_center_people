@@ -1,0 +1,12 @@
+---
+interface Props {
+  message?: string;
+  icon?: string;
+}
+const { message = "No hay contenido disponible.", icon = "◦" } = Astro.props;
+---
+
+<div class="text-center py-16">
+  <p class="text-urban-700 text-2xl mb-4" aria-hidden="true">{icon}</p>
+  <p class="text-bone-muted font-light">{message}</p>
+</div>

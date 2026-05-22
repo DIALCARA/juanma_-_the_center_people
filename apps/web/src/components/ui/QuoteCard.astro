@@ -1,0 +1,22 @@
+---
+interface Props {
+  quote: string;
+  author: string;
+  mediaName?: string;
+  url?: string;
+}
+const { quote, author, mediaName, url } = Astro.props;
+---
+
+<blockquote class="border-l-2 border-red-band pl-6 py-2">
+  <p class="text-bone-muted italic font-light leading-relaxed mb-3">"{quote}"</p>
+  <footer class="text-xs font-heading uppercase tracking-wider text-bone">
+    {url ? (
+      <a href={url} target="_blank" rel="noopener noreferrer" class="hover:text-red-band transition-colors">
+        {author}{mediaName && ` — ${mediaName}`}
+      </a>
+    ) : (
+      <span>{author}{mediaName && ` — ${mediaName}`}</span>
+    )}
+  </footer>
+</blockquote>

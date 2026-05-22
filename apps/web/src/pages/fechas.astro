@@ -1,0 +1,73 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import EventCard from "../components/ui/EventCard.astro";
+import EmptyState from "../components/ui/EmptyState.astro";
+import SectionUnavailable from "../components/ui/SectionUnavailable.astro";
+import { getEvents, getSectionInfo } from "../lib/api";
+
+const section = await getSectionInfo("fechas");
+
+let eventsData: any = null;
+if (section.isEnabled) {
+  try {
+    const res = await getEvents();
+    eventsData = res.data;
+  } catch (e) {}
+}
+
+const events = eventsData?.events ?? [];
+const emptyMessage = eventsData?.empty_state_message ?? section.message ?? "No hay próximas fechas anunciadas por ahora.";
+---
+
+<BaseLayout
+  title={section.title || "Fechas"}
+  description="Próximas presentaciones y conciertos de Juanma & The Center People"
+>
+  {!section.isEnabled && (
+    <SectionUnavailable title={section.title || "Fechas"} message={section.message} />
+  )}
+  {section.isEnabled && (
+    <Fragment>
+  <!-- CABECERA -->
+  <section class="py-20 px-4 text-center" aria-label="Próximas fechas">
+    <div class="max-w-3xl mx-auto">
+      <p class="font-heading text-red-band text-xs uppercase tracking-widest mb-3">En vivo</p>
+      <h1 class="font-heading text-5xl md:text-6xl text-bone uppercase tracking-widest mb-6">
+        Fechas
+      </h1>
+      <p class="text-bone-muted font-light">
+        Próximas presentaciones y conciertos.
+      </p>
+    </div>
+  </section>
+
+  <!-- LISTA DE EVENTOS -->
+  <section class="py-12 px-4 reveal" aria-label="Lista de fechas">
+    <div class="max-w-3xl mx-auto">
+      {events.length > 0 ? (
+        <ul class="space-y-4" role="list">
+          {events.map((event: any) => (
+            <EventCard event={event} />
+          ))}
+        </ul>
+      ) : (
+        <EmptyState message={emptyMessage} />
+      )}
+    </div>
+  </section>
+
+  <!-- CTA BOOKING -->
+  <section class="py-12 px-4 bg-black-soft reveal" aria-label="Booking">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="section-title text-2xl mb-4">¿Querés contratarnos?</h2>
+      <p class="text-bone-muted mb-6 font-light">
+        Para consultas de booking y contrataciones privadas escribinos.
+      </p>
+      <a href="/contacto?tipo=booking" class="btn-secondary" data-umami-event="click_contact_booking">
+        Consultar booking
+      </a>
+    </div>
+  </section>
+    </Fragment>
+  )}
+</BaseLayout>

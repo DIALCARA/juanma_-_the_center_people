@@ -1,0 +1,92 @@
+---
+import "../styles/global.css";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import SEO from "../components/SEO.astro";
+import { getSiteSettings, getSections } from "../lib/api";
+
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  noindex?: boolean;
+}
+
+const { title, description, ogImage, noindex = false } = Astro.props;
+
+let siteData: any = null;
+let sections: any[] = [];
+try {
+  const [siteRes, sectionsRes] = await Promise.all([
+    getSiteSettings(),
+    getSections(),
+  ]);
+  siteData = siteRes.data;
+  sections = sectionsRes.data ?? [];
+} catch (e) {
+  // API no disponible — usar defaults
+}
+
+const bandName = siteData?.band_name ?? "Juanma & The Center People";
+const pageTitle = title ? `${title} | ${bandName}` : bandName;
+const pageDesc = description ?? siteData?.tagline ?? "Rock alternativo peruano";
+const umamiWebsiteId = import.meta.env.UMAMI_WEBSITE_ID ?? "";
+const umamiUrl = import.meta.env.UMAMI_URL ?? "";
+const isProd = import.meta.env.APP_ENV === "production";
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <SEO
+      title={pageTitle}
+      description={pageDesc}
+      ogImage={ogImage}
+      noindex={noindex}
+      siteData={siteData}
+    />
+    <!-- Umami analytics (solo en producción) -->
+    {isProd && umamiWebsiteId && umamiUrl && (
+      <script
+        defer
+        src={`${umamiUrl}/script.js`}
+        data-website-id={umamiWebsiteId}
+      />
+    )}
+  </head>
+  <body>
+    <!-- Skip link para accesibilidad -->
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 btn-primary"
+    >
+      Ir al contenido principal
+    </a>
+
+    <Header bandName={bandName} siteData={siteData} sections={sections} />
+
+    <main id="main-content">
+      <slot />
+    </main>
+
+    <Footer siteData={siteData} />
+
+    <!-- Reveal animation script -->
+    <script>
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.1 }
+      );
+      document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+    </script>
+  </body>
+</html>

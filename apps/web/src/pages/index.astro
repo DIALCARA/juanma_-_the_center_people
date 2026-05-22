@@ -1,0 +1,277 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Marquee from "../components/ui/Marquee.astro";
+import Countdown from "../components/ui/Countdown.astro";
+import { getHome } from "../lib/api";
+
+let homeData: any = null;
+try {
+  const res = await getHome();
+  homeData = res.data;
+} catch (e) {
+  // Fallback a datos vacíos
+}
+
+const site = homeData?.site ?? {};
+const upcomingEvents = homeData?.upcoming_events ?? [];
+const featuredMedia = homeData?.featured_media ?? [];
+const sections = homeData?.sections ?? {};
+
+// Marquee: arma frases automáticas con lo que hay en la DB (release destacado + próxima fecha).
+const marqueeItems: string[] = [];
+if (homeData?.featured_release) {
+  marqueeItems.push(`NUEVO ${homeData.featured_release.title.toUpperCase()} — DISPONIBLE EN STREAMING`);
+}
+if (upcomingEvents[0]) {
+  const ev = upcomingEvents[0];
+  const date = new Date(ev.event_date).toLocaleDateString("es-PE", { day: "2-digit", month: "short" }).toUpperCase();
+  marqueeItems.push(`PRÓXIMA FECHA — ${date} — ${(ev.venue ?? ev.city ?? ev.title).toUpperCase()}`);
+}
+if (marqueeItems.length === 0) {
+  marqueeItems.push(`${(site.band_name ?? "Juanma & The Center People").toUpperCase()} — ${(site.subgenre ?? "Rock alternativo peruano").toUpperCase()}`);
+}
+
+// Countdown solo si hay un próximo evento futuro.
+const nextShow = upcomingEvents[0];
+
+// Helper: ¿debe mostrarse este bloque en la home?
+// true si la sección está habilitada Y marcada como visible en home.
+const showInHome = (slug: string): boolean => {
+  const s = sections[slug];
+  if (!s) return true;
+  return s.is_enabled !== false && s.show_in_home !== false;
+};
+---
+
+<BaseLayout>
+  <!-- HERO -->
+  <section
+    class="relative min-h-[90vh] flex items-center justify-center px-4 text-center overflow-hidden"
+    aria-label="Presentación de la banda"
+  >
+    {/*
+      Video de fondo (opcional):
+      Si existe /hero-bg.mp4 en apps/web/public/, se reproduce en loop sin sonido.
+      En mobile o si el archivo no está, el navegador muestra solo el gradiente de abajo.
+    */}
+    <video
+      class="hero-video"
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="metadata"
+      aria-hidden="true"
+      poster="/og-default.jpg"
+    >
+      <source src="/hero-bg.mp4" type="video/mp4" />
+      <source src="/hero-bg.webm" type="video/webm" />
+    </video>
+    <div class="hero-video-overlay" aria-hidden="true"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto">
+      <p class="font-heading text-red-band text-sm uppercase tracking-widest mb-6 hero-tagline">
+        {site.subgenre ?? "Rock alternativo peruano"}
+      </p>
+      <h1 class="mb-8">
+        <span class="sr-only">{site.band_name ?? "Juanma & The Center People"}</span>
+        <img
+          src="/logo-light.png"
+          alt={site.band_name ?? "Juanma & The Center People"}
+          width="2560"
+          height="1153"
+          class="w-full max-w-3xl mx-auto h-auto hero-logo"
+        />
+      </h1>
+      <p class="text-bone-muted text-lg md:text-xl mb-10 font-body font-light leading-relaxed hero-subtitle">
+        {site.tagline ?? ""}
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center hero-cta">
+        {site.spotify_url && (
+          <a
+            href={site.spotify_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-primary"
+            data-umami-event="click_spotify"
+          >
+            Escuchar en Spotify
+          </a>
+        )}
+        <a href="/contacto" class="btn-secondary" data-umami-event="click_contact_booking">
+          Contacto / Booking
+        </a>
+      </div>
+    </div>
+  </section>
+
+  {/* MARQUEE — punto C */}
+  <Marquee items={marqueeItems} />
+
+  {/* COUNTDOWN — punto D — solo si hay próximo show */}
+  {nextShow && (
+    <Countdown
+      eventDate={nextShow.event_date}
+      eventTitle={nextShow.title}
+      eventVenue={nextShow.venue}
+      eventCity={nextShow.city}
+    />
+  )}
+
+  <!-- MÚSICA DESTACADA -->
+  {showInHome("musica") && homeData?.featured_release && (
+    <section class="py-16 px-4 max-w-7xl mx-auto reveal" aria-label="Música destacada">
+      <div class="flex items-center gap-4 mb-8">
+        <h2 class="section-title text-2xl">Música</h2>
+        <div class="section-divider flex-1"></div>
+      </div>
+      <div class="max-w-lg mx-auto text-center">
+        <p class="text-red-band font-heading text-sm uppercase tracking-wider mb-2">
+          {homeData.featured_release.title}
+        </p>
+        {homeData.featured_release.spotify_url && (
+          <iframe
+            src={`https://open.spotify.com/embed/artist/2lnewal0FLnYLAnziEcIgI`}
+            width="100%"
+            height="160"
+            frameborder="0"
+            allowtransparency="true"
+            allow="encrypted-media"
+            loading="lazy"
+            title="Música en Spotify"
+            class="rounded"
+          />
+        )}
+        <a href="/musica" class="btn-ghost mt-4 inline-block" data-umami-event="view_music">
+          Ver toda la música →
+        </a>
+      </div>
+    </section>
+  )}
+
+  <!-- BANDA RESUMEN -->
+  {showInHome("banda") && homeData?.bio_short && (
+    <section class="py-16 px-4 bg-black-soft reveal" aria-label="La banda">
+      <div class="max-w-3xl mx-auto text-center">
+        <div class="flex items-center gap-4 mb-8">
+          <div class="section-divider flex-1"></div>
+          <h2 class="section-title text-2xl">La Banda</h2>
+          <div class="section-divider flex-1"></div>
+        </div>
+        <p class="text-bone-muted text-lg leading-relaxed font-light">
+          {homeData.bio_short}
+        </p>
+        <a href="/banda" class="btn-ghost mt-6 inline-block">Conocer más →</a>
+      </div>
+    </section>
+  )}
+
+  <!-- MULTIMEDIA DESTACADA -->
+  {showInHome("fotos") && featuredMedia.length > 0 && (
+    <section class="py-16 px-4 max-w-7xl mx-auto reveal" aria-label="Galería destacada">
+      <div class="flex items-center gap-4 mb-8">
+        <h2 class="section-title text-2xl">Galería</h2>
+        <div class="section-divider flex-1"></div>
+        <a href="/fotos" class="btn-ghost text-sm" data-umami-event="view_gallery">Ver todo →</a>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+        {featuredMedia.slice(0, 6).map((item: any) => (
+          <a
+            href="/fotos"
+            class="card-media aspect-square group block"
+            aria-label={item.alt_text || item.title || "Ver galería"}
+          >
+            <img
+              src={item.thumbnail_url || item.file_url}
+              alt={item.alt_text || item.title || "Foto de la banda"}
+              width="400"
+              height="400"
+              loading="lazy"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            {/* Overlay E: título al hover */}
+            {(item.title || item.category_name) && (
+              <div class="media-overlay">
+                <div class="text-bone">
+                  {item.title && (
+                    <p class="font-heading text-sm uppercase tracking-wider">{item.title}</p>
+                  )}
+                  {item.category_name && (
+                    <p class="text-red-band text-[10px] uppercase tracking-widest mt-1">{item.category_name}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <!-- PRÓXIMAS FECHAS -->
+  {showInHome("fechas") && (
+  <section class="py-16 px-4 bg-black-soft reveal" aria-label="Próximas fechas">
+    <div class="max-w-7xl mx-auto">
+      <div class="flex items-center gap-4 mb-8">
+        <div class="section-divider flex-1"></div>
+        <h2 class="section-title text-2xl">Fechas</h2>
+        <div class="section-divider flex-1"></div>
+      </div>
+      {upcomingEvents.length > 0 ? (
+        <ul class="max-w-2xl mx-auto space-y-4" role="list">
+          {upcomingEvents.map((event: any) => (
+            <li class="flex items-center gap-6 border-b border-urban-800 pb-4">
+              <time class="font-heading text-red-band text-sm uppercase tracking-wider whitespace-nowrap" datetime={event.event_date}>
+                {new Date(event.event_date).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })}
+              </time>
+              <div class="flex-1 min-w-0">
+                <p class="font-heading text-bone uppercase text-sm truncate">{event.title}</p>
+                {event.venue && <p class="text-bone-muted text-xs">{event.venue} · {event.city}</p>}
+              </div>
+              {event.ticket_url && (
+                <a href={event.ticket_url} target="_blank" rel="noopener noreferrer" class="btn-ghost text-xs whitespace-nowrap">
+                  Entradas →
+                </a>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="text-center text-bone-muted">No hay próximas fechas anunciadas por ahora.</p>
+      )}
+      <div class="text-center mt-8">
+        <a href="/fechas" class="btn-ghost">Ver todas las fechas →</a>
+      </div>
+    </div>
+  </section>
+  )}
+
+  <!-- BLOQUE PRENSA/EPK -->
+  {showInHome("prensa-epk") && (
+  <section class="py-16 px-4 reveal" aria-label="Prensa y EPK">
+    <div class="max-w-3xl mx-auto text-center border border-urban-800 p-10">
+      <p class="text-bone-muted text-xs font-heading uppercase tracking-widest mb-3">Para medios y productores</p>
+      <h2 class="section-title text-3xl mb-4">Prensa / EPK</h2>
+      <p class="text-bone-muted mb-8 font-light">
+        Bio, fotos oficiales, rider técnico, material descargable y contacto de prensa.
+      </p>
+      <a href="/prensa-epk" class="btn-primary" data-umami-event="view_epk">
+        Ir a Prensa / EPK
+      </a>
+    </div>
+  </section>
+  )}
+
+  <!-- CONTACTO RÁPIDO -->
+  {showInHome("contacto") && (
+  <section class="py-16 px-4 bg-black-soft reveal" aria-label="Contacto rápido">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="section-title text-3xl mb-4">Contacto</h2>
+      <p class="text-bone-muted mb-8 font-light">
+        ¿Interesado en booking, colaboraciones o prensa? Escribinos.
+      </p>
+      <a href="/contacto" class="btn-secondary">Escribir mensaje</a>
+    </div>
+  </section>
+  )}
+</BaseLayout>

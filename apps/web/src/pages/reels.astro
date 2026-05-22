@@ -1,0 +1,161 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import EmptyState from "../components/ui/EmptyState.astro";
+import SectionUnavailable from "../components/ui/SectionUnavailable.astro";
+import { getMedia, getMediaCategories, getSectionInfo } from "../lib/api";
+
+const section = await getSectionInfo("reels");
+
+const page = Number(Astro.url.searchParams.get("page") ?? "1");
+const category = Astro.url.searchParams.get("categoria") ?? "";
+
+let mediaData: any = null;
+let categoriesWithContent: Array<{ slug: string; name: string; count: number }> = [];
+if (section.isEnabled) {
+  try {
+    const [media, cats] = await Promise.all([
+      getMedia({ type: "reel", category, page, page_size: 12 }),
+      getMediaCategories("reel"),
+    ]);
+    mediaData = media.data;
+    categoriesWithContent = cats.data ?? [];
+  } catch (e) {}
+}
+
+const items = mediaData?.items ?? [];
+const total = mediaData?.total ?? 0;
+const totalPages = Math.ceil(total / 12);
+
+function extractYoutubeId(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+  return match?.[1] ?? null;
+}
+---
+
+<BaseLayout title={section.title || "Reels"} description="Reels y contenido corto de Juanma & The Center People">
+  {!section.isEnabled && (
+    <SectionUnavailable title={section.title || "Reels"} message={section.message} />
+  )}
+  {section.isEnabled && (
+    <Fragment>
+  <!-- CABECERA -->
+  <section class="py-20 px-4 text-center" aria-label="Reels">
+    <div class="max-w-3xl mx-auto">
+      <p class="font-heading text-red-band text-xs uppercase tracking-widest mb-3">Contenido corto</p>
+      <h1 class="font-heading text-5xl md:text-6xl text-bone uppercase tracking-widest mb-6">
+        Reels
+      </h1>
+      {total > 0 && (
+        <p class="text-bone-muted font-light">{total} reels</p>
+      )}
+    </div>
+  </section>
+
+  <!-- FILTROS POR CATEGORÍA -->
+  {categoriesWithContent.length > 0 && (
+    <nav class="px-4 mb-2" aria-label="Filtrar reels por categoría">
+      <ul class="max-w-5xl mx-auto flex flex-wrap justify-center gap-2" role="list">
+        <li>
+          <a
+            href="/reels"
+            class:list={[
+              "inline-block px-4 py-1.5 text-xs font-heading uppercase tracking-wider border transition-colors",
+              category === ""
+                ? "border-red-band text-red-band"
+                : "border-urban-800 text-bone-muted hover:text-bone hover:border-urban-600",
+            ]}
+            aria-current={category === "" ? "page" : undefined}
+          >
+            Todos
+          </a>
+        </li>
+        {categoriesWithContent.map((cat) => (
+          <li>
+            <a
+              href={`/reels?categoria=${cat.slug}`}
+              class:list={[
+                "inline-block px-4 py-1.5 text-xs font-heading uppercase tracking-wider border transition-colors",
+                category === cat.slug
+                  ? "border-red-band text-red-band"
+                  : "border-urban-800 text-bone-muted hover:text-bone hover:border-urban-600",
+              ]}
+              aria-current={category === cat.slug ? "page" : undefined}
+            >
+              {cat.name} <span class="text-urban-600">({cat.count})</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )}
+
+  <!-- GRID DE REELS -->
+  <section class="py-8 px-4 reveal" aria-label="Galería de reels">
+    <div class="max-w-5xl mx-auto">
+      {items.length > 0 ? (
+        <>
+          <!-- Reels en formato vertical (9:16) -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {items.map((item: any) => {
+              const youtubeId = extractYoutubeId(item.source_url || "");
+              return (
+                <article class="border border-urban-800 overflow-hidden hover:border-urban-600 transition-colors group">
+                  {item.thumbnail_url ? (
+                    <div class="relative aspect-[9/16] bg-urban-900">
+                      <img
+                        src={item.thumbnail_url}
+                        alt={item.alt_text || item.title || "Reel"}
+                        loading="lazy"
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      {youtubeId && (
+                        <a
+                          href={item.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label={`Ver reel: ${item.title || "Reel"}`}
+                          data-umami-event="click_reel"
+                        >
+                          <span class="w-12 h-12 rounded-full bg-red-band flex items-center justify-center text-bone text-xl">▶</span>
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <div class="aspect-[9/16] bg-urban-900 flex items-center justify-center">
+                      <span class="text-urban-600 text-3xl">▶</span>
+                    </div>
+                  )}
+                  {item.title && (
+                    <div class="p-2">
+                      <p class="font-heading text-bone uppercase text-xs truncate">{item.title}</p>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+
+          {totalPages > 1 && (
+            <nav class="flex justify-center gap-4 mt-12" aria-label="Paginación">
+              {page > 1 && (
+                <a href={`/reels?page=${page - 1}${category ? `&categoria=${category}` : ""}`} class="btn-ghost text-sm">← Anterior</a>
+              )}
+              <span class="text-bone-muted text-sm font-heading uppercase tracking-wider self-center">
+                {page} / {totalPages}
+              </span>
+              {page < totalPages && (
+                <a href={`/reels?page=${page + 1}${category ? `&categoria=${category}` : ""}`} class="btn-ghost text-sm">Siguiente →</a>
+              )}
+            </nav>
+          )}
+        </>
+      ) : (
+        <EmptyState message="Los reels se publicarán próximamente." />
+      )}
+    </div>
+  </section>
+    </Fragment>
+  )}
+</BaseLayout>

@@ -1,41 +1,89 @@
-# Juanma & The Center People
+# Juanma & The Center People — Sitio oficial + EPK + CMS
 
-Web para una banda peruana de rock pop con galeria interna sincronizada desde
-un album publico de Google Photos.
+Sitio web oficial, EPK profesional y CMS de contenido para la banda peruana **Juanma & The Center People**.
 
-## Ejecutar
+## Estructura del proyecto
+
+```
+juanma-epk/
+├── apps/
+│   ├── web/      # Sitio público (Astro SSR)
+│   ├── admin/    # Backoffice CMS (Next.js 14)
+│   └── api/      # Backend + API (FastAPI)
+├── storage/
+│   └── media/    # Multimedia (montado como volumen Docker)
+├── infra/        # Docker Compose (dev y producción)
+├── scripts/      # Scripts operacionales
+├── docs/         # Especificaciones del proyecto
+└── .env.example  # Variables de entorno (copiar como .env)
+```
+
+## Requisitos
+
+- Docker Desktop (o Docker Engine + Docker Compose v2)
+- Git
+
+## Instalación y arranque local
 
 ```bash
-npm start
+# 1. Clonar el repositorio
+git clone <repo-url>
+cd juanma-epk
+
+# 2. Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tus valores reales
+
+# 3. Inicializar proyecto (primera vez)
+bash scripts/init.sh
+
+# 4. Poblar datos iniciales
+bash scripts/seed.sh
+
+# 5. Levantar todos los servicios
+docker compose -f infra/docker-compose.yml up -d
+
+# 6. Acceder
+# Sitio público: http://localhost:3000
+# Admin CMS:     http://localhost:3001
+# API:           http://localhost:8000
+# API Docs:      http://localhost:8000/docs
 ```
 
-Luego abre `http://localhost:3000`.
+## Deploy en producción (VPS con Traefik)
 
-## Galeria
-
-La web usa `/api/gallery` para leer el album publico configurado en
-`GOOGLE_PHOTOS_ALBUM_URL`. Por defecto usa:
-
-```text
-https://photos.app.goo.gl/uwu8JLuMXjuRSUUH7
+```bash
+# 1. Copiar .env al VPS y configurar con valores de producción
+# 2. Asegurarse de que la red nexus_main_net existe en Docker
+# 3. Ejecutar deploy
+bash scripts/deploy.sh
 ```
 
-Google Photos no permite incrustar el album en un `iframe`, por eso el servidor
-extrae las imagenes publicas y las entrega a la interfaz como una galeria nativa.
-El cache dura 10 minutos y puede cambiarse con `GALLERY_CACHE_MS`.
+Ver [docs/10_deploy_operacion.md](docs/10_deploy_operacion.md) para instrucciones completas.
 
-## Spotify
+## Backup y restore
 
-La seccion Playlist incluye el reproductor oficial embebido del artista:
+```bash
+# Crear backup (SQLite + media)
+bash scripts/backup.sh
 
-```text
-https://open.spotify.com/intl-es/artist/2lnewal0FLnYLAnziEcIgI
+# Restaurar desde backup
+bash scripts/restore.sh backups/backup_20260519_120000.tar.gz
 ```
 
-No requiere credenciales de Spotify Developer.
+## Tests
 
-## Personalizar
+```bash
+# API
+cd apps/api && python -m pytest tests/ -v
 
-- Cambia redes sociales en `index.html`.
-- Reemplaza el correo `booking@juanmarockpop.pe` en `script.js`.
-- Actualiza canciones destacadas en el arreglo `tracks` de `script.js`.
+# Frontend público
+cd apps/web && npx playwright test
+
+# Admin CMS
+cd apps/admin && npm test
+```
+
+## Documentación técnica
+
+Ver la carpeta [docs/](docs/) para las especificaciones completas del proyecto.
