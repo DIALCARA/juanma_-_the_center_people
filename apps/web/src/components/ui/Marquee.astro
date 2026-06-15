@@ -4,8 +4,14 @@ interface Props {
 }
 const { items } = Astro.props;
 
-// Duplicamos los items para que el loop sea continuo sin "salto" visible.
-const loop = [...items, ...items];
+// Cada "half" del track debe ser al menos tan ancho como el viewport, sino
+// queda hueco visible mientras la animación se desplaza. Garantizamos al
+// menos 8 items por half (suficiente para llenar ~3000px aun con frases cortas).
+const MIN_ITEMS_PER_HALF = 8;
+const repeats = Math.max(1, Math.ceil(MIN_ITEMS_PER_HALF / Math.max(items.length, 1)));
+const half = Array.from({ length: repeats }).flatMap(() => items);
+// Duplicamos el half para que el loop sea continuo sin "salto" visible.
+const loop = [...half, ...half];
 ---
 
 {items.length > 0 && (

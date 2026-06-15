@@ -1,7 +1,8 @@
 """Endpoints públicos del sitio (sin autenticación)."""
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from datetime import datetime, timezone, timedelta
@@ -27,6 +28,26 @@ limiter = Limiter(key_func=get_remote_address)
 settings = get_settings()
 
 
+def _resolve_media_url(db, media_id, prefer_thumbnail: bool = False) -> str | None:
+    """Devuelve la URL pública de un MediaItem (o None si no existe)."""
+    if not media_id:
+        return None
+    m = db.query(MediaItem).filter(MediaItem.id == media_id).first()
+    if not m:
+        return None
+    if prefer_thumbnail:
+        return m.thumbnail_url or m.file_url
+    return m.file_url or m.thumbnail_url
+
+
+def _as_aware_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 @router.get("/site-settings")
 async def get_site_settings(db: Session = Depends(get_db)):
     s = db.query(SiteSettings).first()
@@ -38,6 +59,8 @@ async def get_site_settings(db: Session = Depends(get_db)):
         "subgenre": s.subgenre,
         "country": s.country,
         "city": s.city,
+        "hero_image_url": _resolve_media_url(db, s.hero_image_id),
+        "cover_image_url": _resolve_media_url(db, s.cover_image_id),
         "spotify_url": s.spotify_url,
         "youtube_url": s.youtube_url,
         "instagram_url": s.instagram_url,
@@ -84,6 +107,22 @@ async def get_home(db: Session = Depends(get_db)):
         .filter(MusicRelease.is_featured == True, MusicRelease.is_visible == True)
         .first()
     )
+    # Próximos lanzamientos: releases visibles con fecha futura
+    # (excluyendo el featured para no duplicar).
+    today = datetime.now(timezone.utc).date()
+    upcoming_releases_query = (
+        db.query(MusicRelease)
+        .filter(
+            MusicRelease.is_visible == True,
+            MusicRelease.release_date >= today,
+        )
+        .order_by(MusicRelease.release_date.asc())
+    )
+    if featured_release:
+        upcoming_releases_query = upcoming_releases_query.filter(
+            MusicRelease.id != featured_release.id
+        )
+    upcoming_releases = upcoming_releases_query.limit(3).all()
     featured_media = (
         db.query(MediaItem)
         .filter(MediaItem.is_featured == True, MediaItem.is_visible == True)
@@ -110,11 +149,15 @@ async def get_home(db: Session = Depends(get_db)):
         "site": {
             "band_name": site.band_name if site else "Juanma & The Center People",
             "tagline": (site.tagline_custom or site.tagline) if site else "",
+            "subgenre": site.subgenre if site else "Rock alternativo peruano",
             "spotify_url": site.spotify_url if site else None,
             "instagram_url": site.instagram_url if site else None,
+            "hero_image_url": _resolve_media_url(db, site.hero_image_id) if site else None,
+            "cover_image_url": _resolve_media_url(db, site.cover_image_id) if site else None,
         },
         "bio_short": bio.bio_short if bio else None,
         "featured_release": _release_to_dict(featured_release) if featured_release else None,
+        "upcoming_releases": [_release_to_dict(r) for r in upcoming_releases],
         "featured_media": [_media_to_dict(m) for m in featured_media],
         "upcoming_events": [_event_to_dict(e) for e in upcoming_events],
         "sections": sections_map,
@@ -355,10 +398,10 @@ async def submit_contact(
 
 class DownloadRequestBody(BaseModel):
     download_asset_id: int
-    name: str
+    name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
-    organization: Optional[str] = None
-    reason: str
+    organization: str = Field(..., min_length=2, max_length=200)
+    reason: str = Field(..., min_length=5, max_length=500)
     message: Optional[str] = None
 
 
@@ -369,6 +412,12 @@ async def request_download(
     body: DownloadRequestBody,
     db: Session = Depends(get_db),
 ):
+    name = body.name.strip()
+    organization = body.organization.strip()
+    reason = body.reason.strip()
+    if not name or not organization or not reason:
+        raise HTTPException(400, "Nombre, medio/organización y uso del material son obligatorios")
+
     asset = db.query(DownloadAsset).filter(
         DownloadAsset.id == body.download_asset_id,
         DownloadAsset.is_visible == True,
@@ -379,10 +428,10 @@ async def request_download(
 
     dr = DownloadRequest(
         download_asset_id=asset.id,
-        name=body.name,
+        name=name,
         email=body.email,
-        organization=body.organization,
-        reason=body.reason,
+        organization=organization,
+        reason=reason,
         message=body.message,
     )
     db.add(dr)
@@ -399,20 +448,21 @@ async def download_by_token(token: str, db: Session = Depends(get_db)):
     ).first()
     if not dr:
         raise HTTPException(404, "Enlace de descarga no encontrado")
-    if dr.token_expires_at and dr.token_expires_at < datetime.now(timezone.utc):
+    expires_at = _as_aware_utc(dr.token_expires_at)
+    if expires_at and expires_at < datetime.now(timezone.utc):
         dr.status = "expired"
         db.commit()
         raise HTTPException(410, "El enlace de descarga ha expirado")
+
+    asset = dr.asset
+    if not asset or not asset.file_url:
+        raise HTTPException(404, "Archivo no encontrado")
 
     dr.downloaded_at = datetime.now(timezone.utc)
     db.commit()
     logger.info(f"Descarga por token: solicitud #{dr.id}")
 
-    asset = dr.asset
-    return ok({
-        "title": asset.title,
-        "file_url": asset.file_url,
-    })
+    return RedirectResponse(url=asset.file_url, status_code=302)
 
 
 # ─── helpers privados ────────────────────────────────────────────────────────
@@ -443,9 +493,12 @@ def _media_to_dict(m: MediaItem) -> dict:
         "is_featured": m.is_featured,
         "width": m.width,
         "height": m.height,
-        # category_name viene como atributo solo si la relación está cargada.
-        # Usamos el atributo lazy de SQLAlchemy: m.category.name si existe.
+        # category_name / category_slug vienen solo si la relación está cargada.
+        # Usamos el atributo lazy de SQLAlchemy: m.category.* si existe.
+        # El slug es lo que usan los filtros públicos (chips, URL ?categoria=),
+        # así el front no tiene que reconstruirlo mapeando por nombre.
         "category_name": m.category.name if m.category else None,
+        "category_slug": m.category.slug if m.category else None,
     }
 
 

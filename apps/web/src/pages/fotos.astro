@@ -5,16 +5,14 @@ import SectionUnavailable from "../components/ui/SectionUnavailable.astro";
 import { getMedia, getMediaCategories, getSectionInfo } from "../lib/api";
 
 const section = await getSectionInfo("fotos");
-
-const page = Number(Astro.url.searchParams.get("page") ?? "1");
-const category = Astro.url.searchParams.get("categoria") ?? "";
+const initialCategory = Astro.url.searchParams.get("categoria") ?? "all";
 
 let mediaData: any = null;
 let categoriesWithContent: Array<{ slug: string; name: string; count: number }> = [];
 if (section.isEnabled) {
   try {
     const [media, cats] = await Promise.all([
-      getMedia({ type: "image", category, page, page_size: 24 }),
+      getMedia({ type: "image", page: 1, page_size: 120 }),
       getMediaCategories("image"),
     ]);
     mediaData = media.data;
@@ -24,211 +22,867 @@ if (section.isEnabled) {
 
 const items = mediaData?.items ?? [];
 const total = mediaData?.total ?? 0;
-const totalPages = Math.ceil(total / 24);
+const sizes = [
+  [340, 230], [230, 300], [280, 200], [300, 300],
+  [330, 220], [260, 330], [300, 210], [220, 280],
+  [290, 200], [250, 320], [340, 240], [300, 300],
+  [270, 200], [230, 290], [330, 230], [300, 210],
+];
+const wallItems = items.map((item: any, index: number) => {
+  const [fallbackWidth, fallbackHeight] = sizes[index % sizes.length];
+  const title = item.title || item.alt_text || "Juanma & The Center People";
+  const categoryName = item.category_name || "Sin categoría";
+  const categorySlug = item.category_slug || "sin-categoria";
+  const realWidth = item.width || fallbackWidth * 4;
+  const realHeight = item.height || fallbackHeight * 4;
+  const aspect = realWidth / realHeight;
+  const tileArea = Math.max(0.72, Math.min(1, (index % 5) * 0.08 + 0.72));
+  const tileWidth = fallbackWidth * tileArea;
+  const tileHeight = tileWidth / aspect;
+  return {
+    src: item.file_url,
+    thumb: item.thumbnail_url || item.file_url,
+    alt: item.alt_text || title,
+    title,
+    caption: categoryName,
+    category: categorySlug,
+    categoryName,
+    width: Math.round(Math.max(180, Math.min(340, tileWidth))),
+    height: Math.round(Math.max(150, Math.min(320, tileHeight))),
+    realWidth,
+    realHeight,
+  };
+});
 ---
 
-<BaseLayout title={section.title || "Fotos"} description="Galería de fotografías de Juanma & The Center People">
+<BaseLayout
+  title={section.title || "Fotos"}
+  description="Galeria interactiva de fotografias de Juanma & The Center People"
+  breadcrumbs={[{ name: "Inicio", url: "/" }, { name: "Fotos", url: "/fotos" }]}
+  hideFooter={true}
+>
   {!section.isEnabled && (
     <SectionUnavailable title={section.title || "Fotos"} message={section.message} />
   )}
-  {section.isEnabled && (
-    <Fragment>
-  <!-- CABECERA -->
-  <section class="py-20 px-4 text-center" aria-label="Fotos">
-    <div class="max-w-3xl mx-auto">
-      <p class="font-heading text-red-band text-xs uppercase tracking-widest mb-3">Galería</p>
-      <h1 class="font-heading text-5xl md:text-6xl text-bone uppercase tracking-widest mb-6">
-        Fotos
-      </h1>
-      {total > 0 && (
-        <p class="text-bone-muted font-light">{total} fotografías</p>
-      )}
-    </div>
-  </section>
 
-  <!-- FILTROS POR CATEGORÍA -->
-  {categoriesWithContent.length > 0 && (
-    <nav class="px-4 mb-2" aria-label="Filtrar fotos por categoría">
-      <ul class="max-w-7xl mx-auto flex flex-wrap justify-center gap-2" role="list">
-        <li>
-          <a
-            href="/fotos"
-            class:list={[
-              "inline-block px-4 py-1.5 text-xs font-heading uppercase tracking-wider border transition-colors",
-              category === ""
-                ? "border-red-band text-red-band"
-                : "border-urban-800 text-bone-muted hover:text-bone hover:border-urban-600",
-            ]}
-            aria-current={category === "" ? "page" : undefined}
-          >
-            Todas
-          </a>
-        </li>
-        {categoriesWithContent.map((cat) => (
-          <li>
-            <a
-              href={`/fotos?categoria=${cat.slug}`}
-              class:list={[
-                "inline-block px-4 py-1.5 text-xs font-heading uppercase tracking-wider border transition-colors",
-                category === cat.slug
-                  ? "border-red-band text-red-band"
-                  : "border-urban-800 text-bone-muted hover:text-bone hover:border-urban-600",
-              ]}
-              aria-current={category === cat.slug ? "page" : undefined}
-            >
-              {cat.name} <span class="text-urban-600">({cat.count})</span>
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
+  {section.isEnabled && items.length === 0 && (
+    <section class="pt-28 px-4">
+      <EmptyState message="Las fotos se publicaran proximamente." />
+    </section>
   )}
 
-  <!-- GALERÍA -->
-  <section class="py-8 px-4 reveal" aria-label="Galería de fotos">
-    <div class="max-w-7xl mx-auto">
-      {items.length > 0 ? (
-        <>
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2" id="gallery">
-            {items.map((item: any, i: number) => (
-              <button
-                class="card-media aspect-square cursor-zoom-in group"
-                data-src={item.file_url}
-                data-alt={item.alt_text || item.title || "Foto de la banda"}
-                data-index={i}
-                aria-label={`Ver foto: ${item.alt_text || item.title || "Foto de la banda"}`}
-              >
-                <img
-                  src={item.thumbnail_url || item.file_url}
-                  alt={item.alt_text || item.title || "Foto de la banda"}
-                  width="400"
-                  height="400"
-                  loading="lazy"
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </button>
-            ))}
-          </div>
+  {section.isEnabled && items.length > 0 && (
+    <section class="muro-page" aria-label="Muro visual de fotos">
+      <div id="muro-stage" class="muro-stage">
+        <div id="muro-dark" class="muro-dark"></div>
+      </div>
+      <div class="muro-vignette" aria-hidden="true"></div>
 
-          <!-- PAGINACIÓN -->
-          {totalPages > 1 && (
-            <nav class="flex justify-center gap-4 mt-12" aria-label="Paginación">
-              {page > 1 && (
-                <a href={`/fotos?page=${page - 1}${category ? `&categoria=${category}` : ""}`} class="btn-ghost text-sm">
-                  ← Anterior
-                </a>
-              )}
-              <span class="text-bone-muted text-sm font-heading uppercase tracking-wider self-center">
-                {page} / {totalPages}
-              </span>
-              {page < totalPages && (
-                <a href={`/fotos?page=${page + 1}${category ? `&categoria=${category}` : ""}`} class="btn-ghost text-sm">
-                  Siguiente →
-                </a>
-              )}
-            </nav>
-          )}
-        </>
-      ) : (
-        <EmptyState message="Las fotos se publicarán próximamente." />
-      )}
-    </div>
-  </section>
+      <div class="muro-hud muro-top">
+        <nav class="muro-categories" aria-label="Filtrar fotos por categoria">
+          <button class="muro-chip" data-cat="all" aria-pressed={initialCategory === "all" ? "true" : "false"}>
+            Todas
+          </button>
+          {categoriesWithContent.map((cat) => (
+            <button
+              class="muro-chip"
+              data-cat={cat.slug}
+              aria-pressed={initialCategory === cat.slug ? "true" : "false"}
+            >
+              {cat.name} <span>({cat.count})</span>
+            </button>
+          ))}
+          <span class="muro-sep" aria-hidden="true"></span>
+          <button class="muro-reset" id="muro-recenter" type="button">Centrar</button>
+        </nav>
+      </div>
 
-  <!-- LIGHTBOX -->
-  <div
-    id="lightbox"
-    class="fixed inset-0 z-50 bg-black/95 hidden items-center justify-center p-4"
-    role="dialog"
-    aria-modal="true"
-    aria-label="Vista ampliada"
-  >
-    <button
-      id="lightbox-close"
-      class="absolute top-4 right-4 text-bone-muted hover:text-bone text-3xl font-light"
-      aria-label="Cerrar"
-    >
-      ×
-    </button>
-    <button
-      id="lightbox-prev"
-      class="absolute left-4 top-1/2 -translate-y-1/2 text-bone-muted hover:text-bone text-4xl font-light"
-      aria-label="Anterior"
-    >
-      ‹
-    </button>
-    <img
-      id="lightbox-img"
-      src=""
-      alt=""
-      class="max-w-full max-h-[90vh] object-contain"
-    />
-    <button
-      id="lightbox-next"
-      class="absolute right-4 top-1/2 -translate-y-1/2 text-bone-muted hover:text-bone text-4xl font-light"
-      aria-label="Siguiente"
-    >
-      ›
-    </button>
-  </div>
-    </Fragment>
+      <button class="muro-close" id="muro-close" type="button">[ esc ] cerrar x</button>
+      <button class="muro-nav muro-nav--prev" id="muro-prev" type="button" aria-label="Foto anterior">‹</button>
+      <button class="muro-nav muro-nav--next" id="muro-next" type="button" aria-label="Foto siguiente">›</button>
+
+      <div id="muro-caption" class="muro-caption" aria-live="polite">
+        <div class="muro-caption__category" id="muro-caption-category"></div>
+        <div class="muro-caption__count" id="muro-caption-count"></div>
+      </div>
+    </section>
   )}
 </BaseLayout>
 
-<script>
-  const gallery = document.getElementById("gallery");
-  const lightbox = document.getElementById("lightbox");
-  const lightboxImg = document.getElementById("lightbox-img") as HTMLImageElement;
-  const closeBtn = document.getElementById("lightbox-close");
-  const prevBtn = document.getElementById("lightbox-prev");
-  const nextBtn = document.getElementById("lightbox-next");
+<style is:global>
+  @import url("https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap");
 
-  let currentIndex = 0;
-  const buttons = gallery?.querySelectorAll("button[data-src]") ?? [];
-  const items = Array.from(buttons).map((b) => ({
-    src: b.getAttribute("data-src") ?? "",
-    alt: b.getAttribute("data-alt") ?? "",
-  }));
-
-  function openLightbox(index: number) {
-    currentIndex = index;
-    if (!lightboxImg || !lightbox) return;
-    lightboxImg.src = items[index].src;
-    lightboxImg.alt = items[index].alt;
-    lightbox.classList.remove("hidden");
-    lightbox.classList.add("flex");
-    document.body.style.overflow = "hidden";
-    lightboxImg.focus();
+  body.muro-active {
+    overflow: hidden;
   }
 
-  function closeLightbox() {
-    if (!lightbox) return;
-    lightbox.classList.add("hidden");
-    lightbox.classList.remove("flex");
-    document.body.style.overflow = "";
+  .muro-page {
+    --muro-bg: #0a0a0d;
+    --muro-bg2: #101015;
+    --muro-ink: #f2f0ea;
+    --muro-muted: #75727c;
+    --muro-mag: #c0392b;
+    --muro-cyan: #37e3ff;
+    --muro-line: rgba(242,240,234,.1);
+    --muro-display: "Anton", "Oswald", sans-serif;
+    --muro-mono: "Space Mono", monospace;
+    --muro-body: "Archivo", "Inter", sans-serif;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background:
+      radial-gradient(120vw 90vh at 50% -10%, rgba(192,57,43,.15), transparent 55%),
+      radial-gradient(100vw 80vh at 90% 110%, rgba(55,227,255,.08), transparent 55%),
+      var(--muro-bg);
+    color: var(--muro-ink);
+    font-family: var(--muro-body);
+    overflow: hidden;
   }
 
-  function navigate(delta: number) {
-    currentIndex = (currentIndex + delta + items.length) % items.length;
-    if (lightboxImg) {
-      lightboxImg.src = items[currentIndex].src;
-      lightboxImg.alt = items[currentIndex].alt;
+  .muro-page::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 48;
+    pointer-events: none;
+    opacity: .055;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .muro-stage {
+    position: fixed;
+    inset: 0;
+    z-index: 21;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .muro-stage.grabbing {
+    cursor: grabbing;
+  }
+
+  .muro-stage.focusing {
+    cursor: default;
+  }
+
+  .muro-vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 47;
+    pointer-events: none;
+    box-shadow: inset 0 0 240px 60px rgba(5,5,8,.85);
+  }
+
+  .muro-photo {
+    position: absolute;
+    top: 64px;
+    left: 0;
+    will-change: transform;
+  }
+
+  .muro-photo__inner {
+    position: relative;
+    overflow: hidden;
+    border-radius: 3px;
+    outline: 1px solid rgba(255,255,255,.05);
+    box-shadow: 0 18px 40px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.4);
+    transition: width .55s cubic-bezier(.16,.84,.3,1), height .55s cubic-bezier(.16,.84,.3,1), transform .5s cubic-bezier(.2,.7,.2,1), box-shadow .5s, filter .6s;
+    animation: muro-float var(--dur) ease-in-out infinite alternate;
+    animation-delay: var(--del);
+  }
+
+  @keyframes muro-float {
+    from { transform: translateY(-5px) rotate(-.4deg); }
+    to { transform: translateY(5px) rotate(.4deg); }
+  }
+
+  .muro-photo__inner img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    user-select: none;
+    -webkit-user-drag: none;
+    filter: grayscale(1) brightness(.72) contrast(1.05);
+    transition: filter .6s ease;
+  }
+
+  .muro-photo:hover {
+    z-index: 40;
+  }
+
+  .muro-photo:hover .muro-photo__inner {
+    transform: scale(1.07);
+    box-shadow: 0 36px 70px rgba(0,0,0,.6), 0 0 0 1px var(--muro-mag), 0 0 50px -8px var(--muro-mag);
+    animation-play-state: paused;
+  }
+
+  .muro-photo:hover .muro-photo__inner img {
+    filter: grayscale(0) brightness(1) contrast(1.06);
+  }
+
+  .muro-photo__label {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    z-index: 2;
+    padding: 3px 8px;
+    border: 1px solid var(--muro-line);
+    border-radius: 999px;
+    background: rgba(10,10,13,.6);
+    color: var(--muro-ink);
+    font-family: var(--muro-mono);
+    font-size: .58rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: .4s;
+    backdrop-filter: blur(6px);
+  }
+
+  .muro-photo:hover .muro-photo__label {
+    opacity: 1;
+    transform: none;
+  }
+
+  .muro-photo.dim {
+    pointer-events: none;
+  }
+
+  .muro-photo.dim .muro-photo__inner {
+    filter: blur(2px);
+    opacity: .18;
+  }
+
+  .muro-photo.lifted .muro-photo__inner {
+    box-shadow: 0 50px 90px rgba(0,0,0,.7), 0 0 0 1px var(--muro-cyan), 0 0 60px -6px var(--muro-cyan);
+    animation-play-state: paused;
+    transition: box-shadow .3s;
+  }
+
+  .muro-photo.focused {
+    z-index: 200;
+  }
+
+  .muro-photo.focused .muro-photo__inner {
+    animation: none;
+    box-shadow: 0 60px 140px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.12);
+    transition: width .6s cubic-bezier(.16,.84,.3,1), height .6s cubic-bezier(.16,.84,.3,1), transform .6s cubic-bezier(.16,.84,.3,1), box-shadow .6s;
+  }
+
+  .muro-photo.focused .muro-photo__inner img {
+    object-fit: contain;
+    background: #050508;
+    filter: grayscale(0) brightness(1.02) contrast(1.05);
+  }
+
+  .muro-dark {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(6,6,9,.78);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .5s, visibility .5s;
+    backdrop-filter: blur(3px);
+  }
+
+  .muro-dark.on {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .muro-hud {
+    position: fixed;
+    z-index: 45;
+    pointer-events: none;
+  }
+
+  .muro-top {
+    top: 0;
+    left: 0;
+    right: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+    justify-items: center;
+    /* 64px del header global (z-50) + 18px de aire */
+    padding: 82px 18px 0;
+  }
+
+  .muro-categories {
+    pointer-events: auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--muro-line);
+    border-radius: 999px;
+    background: rgba(16,16,21,.72);
+    box-shadow: 0 20px 50px rgba(0,0,0,.5);
+    backdrop-filter: blur(14px);
+  }
+
+  .muro-chip,
+  .muro-reset {
+    border: 0;
+    background: transparent;
+    font-family: var(--muro-mono);
+    font-size: .68rem;
+    letter-spacing: .04em;
+    cursor: pointer;
+  }
+
+  .muro-chip {
+    padding: 8px 14px;
+    border-radius: 999px;
+    color: var(--muro-muted);
+    text-transform: lowercase;
+    transition: color .3s, background .3s;
+  }
+
+  .muro-chip:hover {
+    color: var(--muro-ink);
+  }
+
+  .muro-chip.active,
+  .muro-chip[aria-pressed="true"] {
+    background: var(--muro-mag);
+    color: #0a0a0d;
+    font-weight: 700;
+  }
+
+  .muro-chip span {
+    opacity: .7;
+  }
+
+  .muro-sep {
+    width: 1px;
+    height: 20px;
+    margin: 6px 4px;
+    background: var(--muro-line);
+  }
+
+  .muro-reset {
+    padding: 8px 14px;
+    color: var(--muro-cyan);
+    opacity: .85;
+    transition: opacity .3s;
+  }
+
+  .muro-reset:hover {
+    opacity: 1;
+  }
+
+  .muro-caption {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 42px;
+    z-index: 70;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity .5s .15s, transform .5s .15s;
+  }
+
+  .muro-caption.on {
+    opacity: 1;
+    transform: none;
+  }
+
+  .muro-caption__category {
+    color: var(--muro-cyan);
+    font-family: var(--muro-mono);
+    font-size: .72rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+
+  .muro-caption__count {
+    margin-top: 6px;
+    color: var(--muro-muted);
+    font-family: var(--muro-mono);
+    font-size: .66rem;
+    letter-spacing: .1em;
+  }
+
+  .muro-nav {
+    position: fixed;
+    top: 50%;
+    z-index: 70;
+    display: flex;
+    width: 50px;
+    height: 50px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--muro-line);
+    border-radius: 50%;
+    background: rgba(16,16,21,.6);
+    color: var(--muro-ink);
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transition: .3s;
+    backdrop-filter: blur(8px);
+    transform: translateY(-50%);
+  }
+
+  .muro-nav.on {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .muro-nav:hover {
+    border-color: var(--muro-cyan);
+    background: var(--muro-cyan);
+    color: #0a0a0d;
+  }
+
+  .muro-nav--prev {
+    left: 30px;
+  }
+
+  .muro-nav--next {
+    right: 30px;
+  }
+
+  .muro-close {
+    position: fixed;
+    top: 82px;
+    right: 36px;
+    z-index: 70;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border: 0;
+    background: transparent;
+    color: var(--muro-ink);
+    font-family: var(--muro-mono);
+    font-size: .74rem;
+    letter-spacing: .1em;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transition: .3s;
+  }
+
+  .muro-close.on {
+    opacity: .9;
+    visibility: visible;
+  }
+
+  .muro-close:hover {
+    color: var(--muro-mag);
+  }
+
+  @media (max-width: 900px) {
+    .muro-top {
+      grid-template-columns: 1fr;
+      padding: 18px 14px 0;
+    }
+
+    .muro-categories {
+      justify-content: flex-start;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      border-radius: 18px;
+    }
+
+    .muro-chip,
+    .muro-reset {
+      white-space: nowrap;
+    }
+
+    .muro-nav {
+      display: none;
+    }
+
+    .muro-close {
+      top: auto;
+      right: 18px;
+      bottom: 24px;
     }
   }
+</style>
 
-  buttons.forEach((btn, i) => {
-    btn.addEventListener("click", () => openLightbox(i));
+<script define:vars={{ wallItems, initialCategory }}>
+  document.body.classList.add("muro-active");
+
+  const stage = document.getElementById("muro-stage");
+  const dark = document.getElementById("muro-dark");
+  const caption = document.getElementById("muro-caption");
+  const captionCategory = document.getElementById("muro-caption-category");
+  const captionCount = document.getElementById("muro-caption-count");
+  const closeButton = document.getElementById("muro-close");
+  const prevButton = document.getElementById("muro-prev");
+  const nextButton = document.getElementById("muro-next");
+  const recenterButton = document.getElementById("muro-recenter");
+  const categoryButtons = Array.from(document.querySelectorAll(".muro-chip"));
+
+  const DATA = wallItems;
+  const SPOTS = [
+    [-560,-180],[-180,-300],[220,-260],[600,-160],
+    [-680,90],[-360,40],[-40,-40],[320,60],[640,120],
+    [-540,320],[-200,300],[120,280],[480,340],
+    [-330,-90],[60,180],[420,-60],[-760,-360],[-460,-500],
+    [-40,-470],[420,-430],[760,-320],[-820,420],[-420,520],
+    [0,500],[410,540],[790,420],[-900,20],[900,-30],
+    [-720,-620],[160,-650],[620,-590],
+  ];
+
+  let viewportWidth = window.innerWidth;
+  let viewportHeight = window.innerHeight;
+  window.addEventListener("resize", () => {
+    viewportWidth = window.innerWidth;
+    viewportHeight = window.innerHeight;
   });
-  closeBtn?.addEventListener("click", closeLightbox);
-  prevBtn?.addEventListener("click", () => navigate(-1));
-  nextBtn?.addEventListener("click", () => navigate(1));
-  lightbox?.addEventListener("click", (e) => {
-    if (e.target === lightbox) closeLightbox();
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+  }
+
+  const photos = DATA.map((item, index) => {
+    const element = document.createElement("div");
+    element.className = "muro-photo";
+    element.dataset.cat = item.category;
+    const spot = SPOTS[index % SPOTS.length];
+    const depth = 0.55 + (((index * 37) % 100) / 100) * 0.75;
+    const rotation = ((index * 53) % 24) - 12;
+    const width = Math.round(item.width);
+    const height = Math.round(item.height);
+    element.innerHTML = `
+      <div class="muro-photo__inner" style="width:${width}px;height:${height}px;--dur:${5 + (index % 6)}s;--del:${(index * 0.3).toFixed(1)}s;transform:rotate(${rotation}deg)">
+        <img src="${escapeHtml(item.thumb)}" data-full="${escapeHtml(item.src)}" alt="${escapeHtml(item.alt)}" draggable="false">
+        <span class="muro-photo__label">${escapeHtml(item.categoryName)}</span>
+      </div>
+    `;
+    stage.appendChild(element);
+    return {
+      element,
+      inner: element.querySelector(".muro-photo__inner"),
+      image: element.querySelector("img"),
+      item,
+      depth,
+      rotation,
+      homeX: spot[0],
+      homeY: spot[1],
+      currentX: spot[0] * 0.15,
+      currentY: spot[1] * 0.15,
+      targetX: spot[0],
+      targetY: spot[1],
+      width,
+      height,
+      focusWidth: width,
+      focusHeight: height,
+      active: true,
+    };
   });
-  document.addEventListener("keydown", (e) => {
-    if (!lightbox?.classList.contains("flex")) return;
-    if (e.key === "Escape") closeLightbox();
-    if (e.key === "ArrowLeft") navigate(-1);
-    if (e.key === "ArrowRight") navigate(1);
+
+  let pan = { x: 0, y: 0 };
+  let panTarget = { x: 0, y: 0 };
+  let velocityX = 0;
+  let velocityY = 0;
+  let focused = null;
+  let dragging = false;
+  let draggingPhoto = null;
+  let pressedPhoto = null;
+  let moved = false;
+  let last = { x: 0, y: 0 };
+  let downPosition = { x: 0, y: 0 };
+
+  function activeList() {
+    return photos.filter((photo) => photo.active);
+  }
+
+  function screenPosition(photo) {
+    return {
+      x: viewportWidth / 2 + (photo.currentX + pan.x * photo.depth) - photo.width / 2,
+      y: viewportHeight / 2 + (photo.currentY + pan.y * photo.depth) - photo.height / 2,
+    };
+  }
+
+  function frame() {
+    if (!dragging && !focused) {
+      if (Math.abs(velocityX) > 0.05 || Math.abs(velocityY) > 0.05) {
+        panTarget.x += velocityX;
+        panTarget.y += velocityY;
+        velocityX *= 0.93;
+        velocityY *= 0.93;
+      }
+    }
+
+    pan.x += (panTarget.x - pan.x) * 0.12;
+    pan.y += (panTarget.y - pan.y) * 0.12;
+
+    for (const photo of photos) {
+      photo.currentX += (photo.targetX - photo.currentX) * 0.12;
+      photo.currentY += (photo.targetY - photo.currentY) * 0.12;
+      if (photo === focused) continue;
+      const position = screenPosition(photo);
+      photo.element.style.transform = `translate3d(${position.x.toFixed(1)}px,${position.y.toFixed(1)}px,0)`;
+    }
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  function findPhoto(target) {
+    const element = target.closest?.(".muro-photo");
+    return element ? photos.find((photo) => photo.element === element) : null;
+  }
+
+  stage.addEventListener("pointerdown", (event) => {
+    if (focused) return;
+    const photo = findPhoto(event.target);
+    pressedPhoto = photo;
+    dragging = true;
+    moved = false;
+    last = { x: event.clientX, y: event.clientY };
+    downPosition = { x: event.clientX, y: event.clientY };
+    velocityX = 0;
+    velocityY = 0;
+    if (photo) {
+      draggingPhoto = photo;
+      photo.element.classList.add("lifted");
+      photo.element.style.zIndex = 150;
+    }
+    stage.classList.add("grabbing");
+    stage.setPointerCapture(event.pointerId);
   });
+
+  stage.addEventListener("pointermove", (event) => {
+    if (!dragging) return;
+    const dx = event.clientX - last.x;
+    const dy = event.clientY - last.y;
+    last = { x: event.clientX, y: event.clientY };
+    if (Math.abs(event.clientX - downPosition.x) + Math.abs(event.clientY - downPosition.y) > 5) {
+      moved = true;
+    }
+
+    if (draggingPhoto) {
+      draggingPhoto.targetX += dx / draggingPhoto.depth;
+      draggingPhoto.targetY += dy / draggingPhoto.depth;
+      draggingPhoto.currentX = draggingPhoto.targetX;
+      draggingPhoto.currentY = draggingPhoto.targetY;
+    } else {
+      panTarget.x += dx;
+      panTarget.y += dy;
+      pan.x += dx;
+      pan.y += dy;
+      velocityX = dx;
+      velocityY = dy;
+    }
+  });
+
+  function endDrag(event) {
+    if (!dragging) return;
+    dragging = false;
+    stage.classList.remove("grabbing");
+    const photo = draggingPhoto;
+    if (photo) {
+      photo.element.classList.remove("lifted");
+      photo.element.style.zIndex = "";
+      draggingPhoto = null;
+    }
+    if (!moved) {
+      const clicked = pressedPhoto || findPhoto(event.target);
+      if (clicked) openFocus(clicked);
+    }
+    pressedPhoto = null;
+  }
+
+  stage.addEventListener("pointerup", endDrag);
+  stage.addEventListener("pointercancel", endDrag);
+  stage.addEventListener("wheel", (event) => {
+    if (focused) return;
+    event.preventDefault();
+    if (event.shiftKey) {
+      panTarget.x -= event.deltaY;
+    } else {
+      panTarget.y -= event.deltaY;
+      panTarget.x -= event.deltaX;
+    }
+  }, { passive: false });
+
+  function setFocusControls(visible) {
+    [closeButton, prevButton, nextButton].forEach((button) => button?.classList.toggle("on", visible));
+    caption?.classList.toggle("on", visible);
+    dark?.classList.toggle("on", visible);
+    stage?.classList.toggle("focusing", visible);
+  }
+
+  function updateCaption(photo) {
+    const list = activeList();
+    captionCategory.textContent = photo.item.caption;
+    captionCount.textContent = `${String(list.indexOf(photo) + 1).padStart(2, "0")} / ${String(list.length).padStart(2, "0")}`;
+  }
+
+  function focusSize(photo) {
+    const realWidth = photo.item.realWidth || photo.width;
+    const realHeight = photo.item.realHeight || photo.height;
+    const aspect = realWidth / realHeight;
+    const maxWidth = viewportWidth * (viewportWidth < 760 ? 0.92 : 0.84);
+    const maxHeight = viewportHeight * (viewportWidth < 760 ? 0.62 : 0.72);
+    let width = Math.min(realWidth, maxWidth);
+    let height = width / aspect;
+    if (height > maxHeight) {
+      height = Math.min(realHeight, maxHeight);
+      width = height * aspect;
+    }
+    width = Math.max(photo.width * 1.35, width);
+    height = width / aspect;
+    if (height > maxHeight) {
+      height = maxHeight;
+      width = height * aspect;
+    }
+    return { width, height };
+  }
+
+  function openFocus(photo) {
+    focused = photo;
+    photo.image.src = photo.image.dataset.full || photo.image.src;
+    const position = screenPosition(photo);
+    photo.element.style.transform = `translate3d(${position.x}px,${position.y}px,0)`;
+    photo.element.classList.add("focused");
+    const targetSize = focusSize(photo);
+    photo.focusWidth = targetSize.width;
+    photo.focusHeight = targetSize.height;
+    const targetX = viewportWidth / 2 - targetSize.width / 2;
+    const targetY = viewportHeight / 2 - targetSize.height / 2 - 22;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      photo.inner.style.width = `${targetSize.width}px`;
+      photo.inner.style.height = `${targetSize.height}px`;
+      photo.element.style.transform = `translate3d(${targetX}px,${targetY}px,0)`;
+    }));
+    photo.inner.style.transform = "rotate(0deg)";
+    photos.forEach((other) => {
+      if (other !== photo) other.element.classList.add("dim");
+    });
+    updateCaption(photo);
+    setFocusControls(true);
+  }
+
+  function cycleFocus(direction) {
+    if (!focused) return;
+    const list = activeList();
+    let index = list.indexOf(focused) + direction;
+    index = (index + list.length) % list.length;
+    const current = focused;
+    current.inner.style.transform = `rotate(${current.rotation}deg)`;
+    current.inner.style.width = `${current.width}px`;
+    current.inner.style.height = `${current.height}px`;
+    current.element.classList.remove("focused");
+    const position = screenPosition(current);
+    current.element.style.transform = `translate3d(${position.x}px,${position.y}px,0)`;
+    focused = null;
+    openFocus(list[index]);
+  }
+
+  function closeFocus() {
+    if (!focused) return;
+    const photo = focused;
+    focused = null;
+    photo.element.classList.remove("focused");
+    photo.inner.style.transform = `rotate(${photo.rotation}deg)`;
+    photo.inner.style.width = `${photo.width}px`;
+    photo.inner.style.height = `${photo.height}px`;
+    photo.inner.style.transition = "width .6s cubic-bezier(.2,.7,.2,1),height .6s cubic-bezier(.2,.7,.2,1),transform .6s cubic-bezier(.2,.7,.2,1),box-shadow .6s,filter .6s";
+    photo.element.style.transition = "transform .6s cubic-bezier(.2,.7,.2,1)";
+    const position = screenPosition(photo);
+    requestAnimationFrame(() => {
+      photo.element.style.transform = `translate3d(${position.x}px,${position.y}px,0)`;
+    });
+    setTimeout(() => {
+      photo.element.style.transition = "";
+      photo.inner.style.transition = "";
+    }, 620);
+    photos.forEach((other) => other.element.classList.remove("dim"));
+    setFocusControls(false);
+  }
+
+  closeButton?.addEventListener("click", closeFocus);
+  nextButton?.addEventListener("click", () => cycleFocus(1));
+  prevButton?.addEventListener("click", () => cycleFocus(-1));
+  dark?.addEventListener("click", closeFocus);
+  window.addEventListener("keydown", (event) => {
+    if (!focused) return;
+    if (event.key === "Escape") closeFocus();
+    if (event.key === "ArrowRight") cycleFocus(1);
+    if (event.key === "ArrowLeft") cycleFocus(-1);
+  });
+
+  function setActiveChip(category) {
+    categoryButtons.forEach((button) => {
+      const active = button.dataset.cat === category;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+
+  function applyFilter(category) {
+    if (focused) closeFocus();
+    setActiveChip(category);
+    panTarget.x = 0;
+    panTarget.y = 0;
+    velocityX = 0;
+    velocityY = 0;
+    const url = new URL(window.location.href);
+    if (category === "all") {
+      url.searchParams.delete("categoria");
+      photos.forEach((photo) => {
+        photo.targetX = photo.homeX;
+        photo.targetY = photo.homeY;
+        photo.active = true;
+        photo.element.classList.remove("dim");
+      });
+    } else {
+      url.searchParams.set("categoria", category);
+      const matching = photos.filter((photo) => photo.item.category === category);
+      const others = photos.filter((photo) => photo.item.category !== category);
+      const radius = Math.min(viewportWidth, viewportHeight) * 0.30;
+      matching.forEach((photo, index) => {
+        photo.active = true;
+        photo.element.classList.remove("dim");
+        if (matching.length === 1) {
+          photo.targetX = 0;
+          photo.targetY = 0;
+          return;
+        }
+        const angle = (index / matching.length) * Math.PI * 2 - Math.PI / 2;
+        const jitter = index % 2 ? 1.18 : .82;
+        photo.targetX = Math.cos(angle) * radius * jitter;
+        photo.targetY = Math.sin(angle) * radius * .78 * jitter;
+      });
+      others.forEach((photo) => {
+        photo.active = false;
+        photo.element.classList.add("dim");
+        photo.targetX = photo.homeX * 1.9 + (photo.homeX >= 0 ? 420 : -420);
+        photo.targetY = photo.homeY * 1.9 + (photo.homeY >= 0 ? 260 : -260);
+      });
+    }
+    window.history.replaceState({}, "", url);
+  }
+
+  categoryButtons.forEach((button) => {
+    button.addEventListener("click", () => applyFilter(button.dataset.cat || "all"));
+  });
+
+  recenterButton?.addEventListener("click", () => {
+    panTarget.x = 0;
+    panTarget.y = 0;
+    velocityX = 0;
+    velocityY = 0;
+  });
+
+  applyFilter(initialCategory);
 </script>

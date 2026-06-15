@@ -8,7 +8,7 @@ Backoffice CMS: Next.js 14 (App Router, TypeScript) — subdominio admin.DOMINIO
 Backend/API CMS: FastAPI
 Base de datos inicial: SQLite (API) + PostgreSQL (Umami)
 Analytics: Umami (self-hosted)
-Email: Mailgun (dominio existente del cliente)
+Email: SMTP vía Zoho Mail (cuenta gratuita con dominio propio)
 Deploy: Docker Compose + Traefik externo (instancia existente en VPS)
 Hosting: VPS propio con Traefik ya corriendo
 Red Docker: nexus_main_net (externa, gestionada por el Traefik del VPS)
@@ -44,7 +44,7 @@ FastAPI será usado para:
 - Subida de archivos.
 - Gestión de descargas.
 - Solicitudes de descarga.
-- Formulario de contacto con Mailgun.
+- Formulario de contacto vía SMTP (Zoho Mail).
 
 ## Justificación de SQLite
 
@@ -71,15 +71,16 @@ python-jose[cryptography]>=3.3   JWT
 bcrypt>=4.2,<5.0         hash de passwords (uso directo, sin passlib)
 python-multipart>=0.0.12 uploads multipart
 pillow>=11.3             procesamiento de imágenes (WebP, thumbnails)
-httpx>=0.28              cliente HTTP (Mailgun)
+httpx>=0.28              cliente HTTP genérico
 slowapi>=0.1.9           rate limiting
 aiofiles>=24.1           IO async para archivos
+aiosmtplib>=3.0          envío de email SMTP async (Zoho Mail)
 ```
 
 > **Notas de implementación:**
 > - **No usamos `passlib`**: la versión 1.7.4 no es compatible con `bcrypt 5+`. Usamos `bcrypt` directamente en `app/core/security.py`.
 > - **Python 3.14**: las versiones de `pydantic-core` y `pillow` deben ser recientes (≥2.46 y ≥11.3) para tener wheels prebuilt.
-> - **No usamos `python-magic`** ni `mailgun2`: el primero requiere libmagic en Windows, el segundo es innecesario porque usamos httpx para llamar a Mailgun.
+> - **No usamos `python-magic`**: requiere libmagic en Windows. La validación de tipo de archivo se hace por extensión + magic bytes en código propio.
 
 ## Arquitectura lógica
 
@@ -134,7 +135,7 @@ juanma-epk/
 │   ├── build-prod.sh
 │   └── deploy.sh
 ├── .env.example
-├── .env.local.example
+├── .env.deploy.example
 └── README.md
 ```
 
@@ -194,10 +195,14 @@ MEDIA_PUBLIC_URL=https://api.DOMINIO.com/media
 JWT_SECRET=<string aleatoria 64 chars>
 JWT_EXPIRE_MINUTES=1440
 
-# Email
-MAILGUN_API_KEY=
-MAILGUN_DOMAIN=<dominio verificado en Mailgun>
-MAILGUN_FROM_EMAIL=noreply@<dominio Mailgun>
+# Email SMTP (Zoho Mail)
+SMTP_HOST=smtp.zoho.com
+SMTP_PORT=587
+SMTP_USER=noreply@<tu-dominio>
+SMTP_PASSWORD=<password de aplicación generado en Zoho>
+SMTP_FROM_EMAIL=noreply@<tu-dominio>
+SMTP_FROM_NAME=Juanma & The Center People
+SMTP_USE_TLS=true
 ADMIN_NOTIFICATION_EMAIL=
 
 # Analytics
@@ -235,4 +240,3 @@ translated_value
 ```
 
 O estructura JSON por entidad si se prefiere simplicidad.
-

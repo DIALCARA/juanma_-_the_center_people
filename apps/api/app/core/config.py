@@ -43,10 +43,28 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 1440  # 24 horas
     jwt_algorithm: str = "HS256"
 
-    # Email Mailgun
-    mailgun_api_key: str = ""
-    mailgun_domain: str = ""
-    mailgun_from_email: str = ""
+    # Email SMTP (Zoho Mail u otro proveedor SMTP)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_from_name: str = "Juanma & The Center People"
+    smtp_use_tls: bool = True
+
+    # Cuentas SMTP por rol. Todas usan SMTP_HOST/SMTP_PORT/SMTP_USE_TLS.
+    email_contact: str = ""
+    email_contact_password: str = ""
+    email_booking: str = ""
+    email_booking_password: str = ""
+    email_press: str = ""
+    email_press_password: str = ""
+    email_admin: str = ""
+    email_admin_password: str = ""
+    email_noreply: str = ""
+    email_noreply_password: str = ""
+
+    # Compatibilidad con la configuración SMTP anterior.
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
     admin_notification_email: str = ""
 
     # CORS

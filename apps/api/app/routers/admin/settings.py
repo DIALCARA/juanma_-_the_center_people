@@ -19,6 +19,9 @@ class SiteSettingsUpdate(BaseModel):
     subgenre: Optional[str] = None
     country: Optional[str] = None
     city: Optional[str] = None
+    # Imágenes del hero (IDs de MediaItem; null para quitar)
+    hero_image_id: Optional[int] = None
+    cover_image_id: Optional[int] = None
     spotify_url: Optional[str] = None
     youtube_url: Optional[str] = None
     instagram_url: Optional[str] = None
@@ -55,7 +58,9 @@ async def update_settings(
         s = SiteSettings()
         db.add(s)
 
-    for field, value in body.model_dump(exclude_none=True).items():
+    # exclude_unset (no exclude_none) para permitir setear campos a null
+    # explícitamente (ej. hero_image_id=null para quitar la imagen del hero).
+    for field, value in body.model_dump(exclude_unset=True).items():
         setattr(s, field, value)
 
     db.commit()

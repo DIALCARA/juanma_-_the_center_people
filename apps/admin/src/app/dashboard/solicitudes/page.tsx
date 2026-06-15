@@ -38,13 +38,13 @@ export default function SolicitudesPage() {
       .finally(() => setLoading(false));
   }, [filter]);
 
-  async function setStatus(req: DownloadRequest, action: "approved" | "rejected") {
+  async function setStatus(req: DownloadRequest, action: "approve" | "reject") {
     setProcessing(req.id);
     try {
       await put(`/api/admin/download-requests/${req.id}`, { action });
       setRequests((r) => r.filter((x) => x.id !== req.id));
-      setAlert({ type: "success", message: action === "approved" ? "Solicitud aprobada. Se envió el email." : "Solicitud rechazada." });
-      if (action === "approved" && typeof window !== "undefined") {
+      setAlert({ type: "success", message: action === "approve" ? "Solicitud aprobada. Se envió el email." : "Solicitud rechazada." });
+      if (action === "approve" && typeof window !== "undefined") {
         const w = window as Window & { umami?: { track: (e: string) => void } };
         w.umami?.track("approve_download");
       }
@@ -96,14 +96,14 @@ export default function SolicitudesPage() {
                 {filter === "pending" && (
                   <div className="flex gap-2 shrink-0">
                     <button
-                      onClick={() => setStatus(req, "approved")}
+                      onClick={() => setStatus(req, "approve")}
                       disabled={processing === req.id}
                       className="btn-primary text-xs"
                     >
                       {processing === req.id ? "..." : "Aprobar"}
                     </button>
                     <button
-                      onClick={() => setStatus(req, "rejected")}
+                      onClick={() => setStatus(req, "reject")}
                       disabled={processing === req.id}
                       className="btn-danger text-xs"
                     >

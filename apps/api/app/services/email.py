@@ -1,38 +1,121 @@
-"""Servicio de email vía Mailgun."""
-import httpx
+"""Servicio de email vía SMTP (compatible con Zoho Mail, Google Workspace, etc.)."""
+from dataclasses import dataclass
+from email.message import EmailMessage
+
+import aiosmtplib
+
 from ..core.config import get_settings
 from ..core.logging import logger
 
 settings = get_settings()
 
-MAILGUN_API_URL = f"https://api.mailgun.net/v3/{settings.mailgun_domain}/messages"
+
+@dataclass(frozen=True)
+class EmailProfile:
+    role: str
+    host: str
+    port: int
+    password: str
+    from_name: str
+    use_tls: bool
+    email: str
+
+    @property
+    def name(self) -> str:
+        return self.role
+
+    @property
+    def user(self) -> str:
+        return self.email
+
+    @property
+    def from_email(self) -> str:
+        return self.email
 
 
-async def _send(to: str, subject: str, html: str) -> bool:
-    if not settings.mailgun_api_key or not settings.mailgun_domain:
-        logger.warning("Mailgun no configurado. Email no enviado.")
+def _setting(name: str):
+    return getattr(settings, name)
+
+
+def _pick(value, fallback):
+    return value if value not in (None, "") else fallback
+
+
+def _pick_port(value, fallback: int) -> int:
+    return int(_pick(value, fallback))
+
+
+def _pick_bool(value, fallback: bool) -> bool:
+    value = _pick(value, fallback)
+    if isinstance(value, bool):
+        return value
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _email_for_role(role: str) -> str:
+    return _pick(_setting(f"email_{role}"), settings.smtp_from_email or settings.smtp_user)
+
+
+def _password_for_role(role: str) -> str:
+    return _pick(_setting(f"email_{role}_password"), settings.smtp_password)
+
+
+def _email_profile(role: str = "noreply") -> EmailProfile:
+    return EmailProfile(
+        role=role,
+        host=settings.smtp_host,
+        port=settings.smtp_port,
+        password=_password_for_role(role),
+        from_name=settings.smtp_from_name,
+        use_tls=settings.smtp_use_tls,
+        email=_email_for_role(role),
+    )
+
+
+async def _send(
+    to: str,
+    subject: str,
+    html: str,
+    role: str = "noreply",
+    reply_to: str | None = None,
+) -> bool:
+    profile = _email_profile(role)
+    if not profile.host or not profile.email or not profile.password:
+        logger.warning(f"SMTP '{profile.name}' no configurado. Email no enviado.")
         return False
+
+    message = EmailMessage()
+    message["From"] = f"{profile.from_name} <{profile.from_email}>"
+    message["To"] = to
+    message["Subject"] = subject
+    if reply_to:
+        message["Reply-To"] = reply_to
+    message.set_content("Este correo requiere un cliente compatible con HTML.")
+    message.add_alternative(html, subtype="html")
+
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                MAILGUN_API_URL,
-                auth=("api", settings.mailgun_api_key),
-                data={
-                    "from": settings.mailgun_from_email,
-                    "to": to,
-                    "subject": subject,
-                    "html": html,
-                },
-                timeout=10.0,
-            )
-        if resp.status_code == 200:
-            logger.info(f"Email enviado a {to}: {subject}")
-            return True
-        logger.error(f"Error Mailgun {resp.status_code}: {resp.text}")
-        return False
+        await aiosmtplib.send(
+            message,
+            hostname=profile.host,
+            port=profile.port,
+            username=profile.user,
+            password=profile.password,
+            start_tls=profile.use_tls,
+            timeout=15,
+        )
+        logger.info(f"Email enviado a {to} con rol '{profile.name}': {subject}")
+        return True
     except Exception as e:
-        logger.error(f"Excepción enviando email: {e}")
+        logger.error(f"Error SMTP '{profile.name}' enviando email a {to}: {e}")
         return False
+
+
+def _contact_email_role(contact_type: str) -> str:
+    if contact_type in {"booking", "collaboration"}:
+        return "booking"
+    if contact_type == "press":
+        return "press"
+    return "contact"
 
 
 async def send_contact_notification(msg) -> bool:
@@ -44,6 +127,8 @@ async def send_contact_notification(msg) -> bool:
         "other": "Otro",
     }
     label = tipo_labels.get(msg.contact_type, msg.contact_type)
+    role = _contact_email_role(msg.contact_type)
+    to_email = _email_for_role(role)
     html = f"""
     <h2>Nuevo mensaje de contacto — {label}</h2>
     <p><strong>Nombre:</strong> {msg.name}</p>
@@ -53,9 +138,11 @@ async def send_contact_notification(msg) -> bool:
     <p>{msg.message}</p>
     """
     return await _send(
-        to=settings.admin_notification_email or settings.mailgun_from_email,
+        to=to_email,
         subject=f"[Juanma EPK] Nuevo mensaje: {label} de {msg.name}",
         html=html,
+        role=role,
+        reply_to=msg.email,
     )
 
 
@@ -80,4 +167,5 @@ async def send_download_approved(download_request) -> bool:
         to=download_request.email,
         subject=f"[Juanma EPK] Descarga aprobada: {asset.title}",
         html=html,
+        role="noreply",
     )

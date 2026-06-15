@@ -9,7 +9,7 @@ Leyenda: ✅ Completado · 🔄 Parcial · ⏳ Pendiente
 
 Estos ajustes nacieron de bugs reales detectados al probar el CMS:
 
-- **Python 3.14 + Windows**: dependencias actualizadas (pydantic≥2.11, pillow≥11.3), `passlib` reemplazado por `bcrypt` directo, `python-magic` y `mailgun2` removidos (no se usaban y rompen instalación en Windows).
+- **Python 3.14 + Windows**: dependencias actualizadas (pydantic≥2.11, pillow≥11.3), `passlib` reemplazado por `bcrypt` directo, `python-magic` removido (no se usaba y rompe instalación en Windows).
 - **pyproject.toml**: build backend corregido (`setuptools.build_meta`), config explícita de paquetes para evitar conflicto con `data/`, `alembic/`, `scripts/`.
 - **Pydantic Settings**: ahora busca `.env` subiendo desde `apps/api/app/core/config.py` (permite correr desde cualquier cwd).
 - **Seed UTF-8**: `sys.stdout.reconfigure(encoding="utf-8")` para evitar `UnicodeEncodeError` en consola Windows.
@@ -60,8 +60,8 @@ Cinco mejoras en `apps/web/src/pages/index.astro` (detalle completo en `03_disen
 
 - ✅ Estructura monorepo (`apps/api`, `apps/web`, `apps/admin`, `infra`, `scripts`, `docs`, `storage`)
 - ✅ `.gitignore` completo (Python, Node, SQLite, .env, media)
-- ✅ `.env.example` con todas las variables (API, JWT, Mailgun, Umami, Traefik)
-- ✅ `.env.local.example` con valores de desarrollo local
+- ✅ `.env.example` con todas las variables (API, JWT, SMTP/Zoho, Umami, Traefik)
+- ✅ `.env.deploy.example` para configurar el deploy remoto por SSH
 - ✅ `README.md` operacional (setup, deploy, backup, tests)
 - ✅ Decisiones documentadas en `docs/00_contexto_y_decisiones.md`
 - ✅ Stack documentado en `docs/07_stack_arquitectura.md`
@@ -121,7 +121,7 @@ Cinco mejoras en `apps/web/src/pages/index.astro` (detalle completo en `03_disen
 - ✅ Admin publish (POST no-op registra timestamp, GET status)
 
 ### Servicios
-- ✅ `services/email.py` — Mailgun via httpx (contact notification + download approved)
+- ✅ `services/email.py` — SMTP via aiosmtplib (Zoho Mail) — contact notification + download approved
 - ✅ `services/media_processing.py` — validación MIME/ext, WebP web (1920px), WebP thumbnail (400x400 center crop), ZIP con path traversal prevention
 
 ### Infraestructura API
@@ -268,11 +268,11 @@ Cinco mejoras en `apps/web/src/pages/index.astro` (detalle completo en `03_disen
 
 ---
 
-## Fase 4 — Contacto y Mailgun ✅ (integrado en API)
+## Fase 4 — Contacto y Email SMTP (Zoho) ✅ (integrado en API)
 
 - ✅ Formulario público en /contacto con validación HTML5
 - ✅ `POST /api/public/contact` guarda en DB + llama send_contact_notification
-- ✅ Mailgun via httpx en `services/email.py`
+- ✅ SMTP via aiosmtplib en `services/email.py` (Zoho Mail)
 - ✅ Vista de mensajes en CMS con cambio de estado
 
 ---
@@ -335,7 +335,7 @@ Cinco mejoras en `apps/web/src/pages/index.astro` (detalle completo en `03_disen
 | Sección Prensa/EPK | ✅ Bio + citas + descargas + rider |
 | Rider técnico editable | ✅ 9 sub-secciones en CMS |
 | Descargas públicas y bajo solicitud | ✅ Con token temporal y email |
-| Contacto envía por Mailgun | ✅ |
+| Contacto envía por SMTP (Zoho Mail) | ✅ |
 | Umami registra visitas y eventos | ✅ 12 eventos personalizados |
 | Todo corre con Docker Compose | ✅ Dev + prod listos |
 | Backup de SQLite y media | ✅ scripts/backup.sh |

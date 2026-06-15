@@ -5,49 +5,131 @@ interface Props {
   ogImage?: string;
   noindex?: boolean;
   siteData?: any;
+  /** JSON-LD adicional para esta página (Event, MusicAlbum, etc.) */
+  jsonLd?: Record<string, any> | Record<string, any>[];
+  /** Breadcrumbs para esta página: [{ name, url }, ...]. Si se omite, no se renderiza. */
+  breadcrumbs?: Array<{ name: string; url: string }>;
 }
 
-const { title, description, ogImage, noindex = false, siteData } = Astro.props;
-const canonical = new URL(Astro.url.pathname, import.meta.env.PUBLIC_SITE_URL || "http://localhost:3000").toString();
-const defaultOg = ogImage || `${import.meta.env.PUBLIC_SITE_URL || ""}/og-default.jpg`;
+const {
+  title,
+  description,
+  ogImage,
+  noindex = false,
+  siteData,
+  jsonLd,
+  breadcrumbs,
+} = Astro.props;
+
+// Astro.site viene de astro.config.mjs → siempre la URL pública canónica,
+// independientemente del host con el que el visitante haya llegado.
+const siteOrigin = Astro.site?.toString().replace(/\/$/, "") ?? "http://localhost:3000";
+const canonical = `${siteOrigin}${Astro.url.pathname}`.replace(/\/$/, "") || siteOrigin;
+const ogImageUrl = ogImage
+  ? (ogImage.startsWith("http") ? ogImage : `${siteOrigin}${ogImage}`)
+  : `${siteOrigin}/og-default.jpg`;
+
+const bandName = siteData?.band_name ?? "Juanma & The Center People";
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: bandName,
+  url: siteOrigin,
+  inLanguage: "es-PE",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${siteOrigin}/?q={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
+};
+
+const musicGroupSchema = {
+  "@context": "https://schema.org",
+  "@type": "MusicGroup",
+  name: bandName,
+  description: siteData?.tagline ?? description,
+  url: siteOrigin,
+  logo: `${siteOrigin}/logo-light.png`,
+  image: ogImageUrl,
+  genre: siteData?.subgenre ?? siteData?.genre ?? "Rock alternativo peruano",
+  foundingDate: siteData?.founding_year ?? undefined,
+  foundingLocation: {
+    "@type": "Place",
+    name: siteData?.city ?? "Lima",
+    address: {
+      "@type": "PostalAddress",
+      addressCountry: "PE",
+      addressLocality: siteData?.city ?? "Lima",
+    },
+  },
+  sameAs: [
+    siteData?.spotify_url,
+    siteData?.apple_music_url,
+    siteData?.youtube_url,
+    siteData?.instagram_url,
+    siteData?.facebook_url,
+    siteData?.tiktok_url,
+    siteData?.twitter_url,
+  ].filter(Boolean),
+};
+
+const breadcrumbSchema = breadcrumbs && breadcrumbs.length > 0 ? {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: breadcrumbs.map((b, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    name: b.name,
+    item: b.url.startsWith("http") ? b.url : `${siteOrigin}${b.url}`,
+  })),
+} : null;
+
+const extraJsonLd = jsonLd
+  ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd])
+  : [];
 ---
 
 <title>{title}</title>
 <meta name="description" content={description} />
 <link rel="canonical" href={canonical} />
 {noindex && <meta name="robots" content="noindex, nofollow" />}
+{!noindex && <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />}
 
 <!-- Open Graph -->
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
-<meta property="og:image" content={defaultOg} />
+<meta property="og:image" content={ogImageUrl} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content={`${bandName} — ${description}`} />
 <meta property="og:url" content={canonical} />
 <meta property="og:type" content="website" />
 <meta property="og:locale" content="es_PE" />
-<meta property="og:site_name" content={siteData?.band_name ?? "Juanma & The Center People"} />
+<meta property="og:site_name" content={bandName} />
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content={title} />
 <meta name="twitter:description" content={description} />
-<meta name="twitter:image" content={defaultOg} />
+<meta name="twitter:image" content={ogImageUrl} />
+<meta name="twitter:image:alt" content={`${bandName} — ${description}`} />
 
-<!-- JSON-LD MusicGroup -->
-<script type="application/ld+json" set:html={JSON.stringify({
-  "@context": "https://schema.org",
-  "@type": "MusicGroup",
-  "name": siteData?.band_name ?? "Juanma & The Center People",
-  "description": description,
-  "url": import.meta.env.PUBLIC_SITE_URL ?? "http://localhost:3000",
-  "genre": siteData?.subgenre ?? "Rock alternativo peruano",
-  "foundingLocation": {
-    "@type": "Place",
-    "name": siteData?.city ?? "Lima",
-    "addressCountry": "PE",
-  },
-  "sameAs": [
-    siteData?.spotify_url,
-    siteData?.youtube_url,
-    siteData?.instagram_url,
-  ].filter(Boolean),
-})} />
+<!-- Idioma -->
+<meta http-equiv="content-language" content="es" />
+
+<!-- JSON-LD: WebSite (search action) -->
+<script type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
+
+<!-- JSON-LD: MusicGroup (banda) -->
+<script type="application/ld+json" set:html={JSON.stringify(musicGroupSchema)} />
+
+<!-- JSON-LD: Breadcrumbs (si la página los provee) -->
+{breadcrumbSchema && (
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+)}
+
+<!-- JSON-LD extra (Event, MusicAlbum, Person, etc.) -->
+{extraJsonLd.map((schema) => (
+  <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+))}

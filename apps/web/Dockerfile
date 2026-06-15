@@ -3,6 +3,13 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
+# Build-time args: necesarios para que Astro embeba la URL correcta
+# en canonicals, sitemap.xml, og:url, etc.
+ARG PUBLIC_SITE_URL=http://localhost:3000
+ARG API_BASE_URL=http://api:8000
+ENV PUBLIC_SITE_URL=${PUBLIC_SITE_URL}
+ENV API_BASE_URL=${API_BASE_URL}
+
 COPY package.json package-lock.json* ./
 RUN npm ci --prefer-offline
 

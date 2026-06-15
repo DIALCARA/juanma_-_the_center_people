@@ -41,20 +41,20 @@ const { id } = Astro.params;
         </div>
 
         <div class="mb-6">
-          <label for="organization" class="block font-heading text-bone uppercase tracking-wider text-xs mb-2">Medio / Organización</label>
+          <label for="organization" class="block font-heading text-bone uppercase tracking-wider text-xs mb-2">Medio / Organización *</label>
           <input
-            type="text" id="organization" name="organization" maxlength="150"
+            type="text" id="organization" name="organization" required minlength="2" maxlength="150" autocomplete="organization"
             class="w-full bg-black border border-urban-700 text-bone px-4 py-3 font-body text-sm focus:outline-none focus:border-red-band transition-colors placeholder-urban-600"
-            placeholder="Nombre del medio o empresa (opcional)"
+            placeholder="Nombre del medio, empresa o proyecto"
           />
         </div>
 
         <div class="mb-8">
-          <label for="reason" class="block font-heading text-bone uppercase tracking-wider text-xs mb-2">Uso del material</label>
+          <label for="reason" class="block font-heading text-bone uppercase tracking-wider text-xs mb-2">Uso del material *</label>
           <textarea
-            id="reason" name="reason" rows="3" maxlength="500"
+            id="reason" name="reason" rows="3" required minlength="5" maxlength="500"
             class="w-full bg-black border border-urban-700 text-bone px-4 py-3 font-body text-sm focus:outline-none focus:border-red-band transition-colors placeholder-urban-600 resize-vertical"
-            placeholder="Breve descripción de para qué usarás este material (opcional)"
+            placeholder="Breve descripción de para qué usarás este material"
           ></textarea>
         </div>
 
@@ -96,10 +96,10 @@ const { id } = Astro.params;
     const assetId = (form.elements.namedItem("asset_id") as HTMLInputElement).value;
     const data = {
       download_asset_id: Number(assetId),
-      name: (form.elements.namedItem("name") as HTMLInputElement).value,
-      email: (form.elements.namedItem("email") as HTMLInputElement).value,
-      organization: (form.elements.namedItem("organization") as HTMLInputElement).value || undefined,
-      reason: (form.elements.namedItem("reason") as HTMLTextAreaElement).value || undefined,
+      name: (form.elements.namedItem("name") as HTMLInputElement).value.trim(),
+      email: (form.elements.namedItem("email") as HTMLInputElement).value.trim(),
+      organization: (form.elements.namedItem("organization") as HTMLInputElement).value.trim(),
+      reason: (form.elements.namedItem("reason") as HTMLTextAreaElement).value.trim(),
     };
 
     try {

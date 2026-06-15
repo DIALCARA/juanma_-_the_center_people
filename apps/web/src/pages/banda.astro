@@ -17,9 +17,33 @@ if (section.isEnabled) {
 const bio = bandData?.bio ?? {};
 const members = bandData?.members ?? [];
 const quickFacts = bandData?.quick_facts ?? [];
+
+// JSON-LD: cada miembro como Person, asociado a la banda.
+const membersJsonLd = members.map((m: any) => ({
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: m.name,
+  jobTitle: m.role ?? m.instrument ?? "Músico",
+  memberOf: {
+    "@type": "MusicGroup",
+    name: "Juanma & The Center People",
+  },
+  ...(m.photo_url ? { image: m.photo_url } : {}),
+  ...(m.bio ? { description: m.bio } : {}),
+}));
+
+const breadcrumbs = [
+  { name: "Inicio", url: "/" },
+  { name: "Banda", url: "/banda" },
+];
 ---
 
-<BaseLayout title={section.title || "La Banda"} description={bio.bio_short || "Conocé a Juanma & The Center People"}>
+<BaseLayout
+  title={section.title || "La Banda"}
+  description={bio.bio_short || "Conocé a Juanma & The Center People"}
+  jsonLd={membersJsonLd}
+  breadcrumbs={breadcrumbs}
+>
   {!section.isEnabled && (
     <SectionUnavailable
       title={section.title || "La Banda"}
@@ -36,7 +60,7 @@ const quickFacts = bandData?.quick_facts ?? [];
         La Banda
       </h1>
       {bio.bio_short && (
-        <p class="text-bone-muted text-lg leading-relaxed font-light">{bio.bio_short}</p>
+        <p class="text-bone-muted text-lg leading-relaxed font-light text-justify hyphens-auto">{bio.bio_short}</p>
       )}
     </div>
   </section>
@@ -59,25 +83,9 @@ const quickFacts = bandData?.quick_facts ?? [];
     </section>
   )}
 
-  <!-- DATOS RÁPIDOS -->
-  {quickFacts.length > 0 && (
-    <section class="py-12 px-4 reveal" aria-label="Datos rápidos">
-      <div class="max-w-4xl mx-auto">
-        <div class="flex items-center gap-4 mb-8">
-          <h2 class="section-title text-xl">En números</h2>
-          <div class="section-divider flex-1"></div>
-        </div>
-        <dl class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {quickFacts.map((fact: any) => (
-            <div class="text-center border border-urban-800 p-6">
-              <dt class="text-bone-muted text-xs font-heading uppercase tracking-wider mb-2">{fact.label}</dt>
-              <dd class="font-heading text-bone text-2xl uppercase">{fact.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-    </section>
-  )}
+  {/* Datos rápidos (quick_facts) movidos exclusivamente a /prensa-epk,
+      donde son útiles para periodistas/promotores. En /banda priorizamos
+      historia + miembros. La data sigue en DB y editable desde el admin. */}
 
   <!-- INTEGRANTES -->
   <section class="py-12 px-4 bg-black-soft reveal" aria-label="Integrantes">

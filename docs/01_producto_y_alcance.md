@@ -80,7 +80,7 @@ Debe incluir:
 - CMS/backoffice.
 - Gestión multimedia.
 - Umami analytics.
-- Mailgun para contacto.
+- Zoho Mail (SMTP) para contacto y notificaciones.
 - Downloads públicos y downloads bajo aprobación.
 
 ## Fuera del MVP

@@ -29,8 +29,10 @@ export default function MusicaPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    get<{ data: { releases: Release[] } }>("/api/admin/music")
-      .then((res) => setReleases(res.data.releases ?? []))
+    // El endpoint admin devuelve el array directo en `data`, no envuelto en
+    // {releases: [...]} como el público.
+    get<{ data: Release[] }>("/api/admin/music")
+      .then((res) => setReleases(res.data ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

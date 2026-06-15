@@ -17,11 +17,57 @@ if (section.isEnabled) {
 
 const events = eventsData?.events ?? [];
 const emptyMessage = eventsData?.empty_state_message ?? section.message ?? "No hay próximas fechas anunciadas por ahora.";
+
+// JSON-LD: un schema MusicEvent por cada evento futuro.
+// Esto permite que Google muestre las fechas como rich snippets de eventos.
+const eventsJsonLd = events
+  .filter((ev: any) => ev.date && new Date(ev.date) >= new Date())
+  .map((ev: any) => ({
+    "@context": "https://schema.org",
+    "@type": "MusicEvent",
+    name: ev.title ?? "Concierto",
+    startDate: ev.date,
+    endDate: ev.end_date ?? undefined,
+    eventStatus: ev.is_cancelled
+      ? "https://schema.org/EventCancelled"
+      : "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    location: {
+      "@type": "Place",
+      name: ev.venue ?? "Por confirmar",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: ev.city ?? undefined,
+        addressCountry: ev.country ?? "PE",
+      },
+    },
+    performer: {
+      "@type": "MusicGroup",
+      name: "Juanma & The Center People",
+    },
+    ...(ev.ticket_url ? {
+      offers: {
+        "@type": "Offer",
+        url: ev.ticket_url,
+        availability: "https://schema.org/InStock",
+        price: ev.price ?? undefined,
+        priceCurrency: ev.currency ?? "PEN",
+      },
+    } : {}),
+    ...(ev.image_url ? { image: ev.image_url } : {}),
+  }));
+
+const breadcrumbs = [
+  { name: "Inicio", url: "/" },
+  { name: "Fechas", url: "/fechas" },
+];
 ---
 
 <BaseLayout
   title={section.title || "Fechas"}
   description="Próximas presentaciones y conciertos de Juanma & The Center People"
+  jsonLd={eventsJsonLd}
+  breadcrumbs={breadcrumbs}
 >
   {!section.isEnabled && (
     <SectionUnavailable title={section.title || "Fechas"} message={section.message} />

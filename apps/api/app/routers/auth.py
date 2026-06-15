@@ -5,7 +5,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from ..core.database import get_db
-from ..core.security import verify_password, create_access_token
+from ..core.security import verify_password, hash_password, create_access_token
 from ..core.config import get_settings
 from ..core.logging import logger
 from ..models.user import User
@@ -59,3 +59,48 @@ async def me(current_user: User = Depends(get_current_user)):
         "name": current_user.name,
         "role": current_user.role,
     })
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/change-password")
+@limiter.limit("5/minute")
+async def change_password(
+    request: Request,
+    body: ChangePasswordRequest,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not verify_password(body.current_password, current_user.password_hash):
+        logger.warning(
+            f"Intento fallido de cambio de password para {current_user.email} "
+            f"desde {request.client.host}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="La contraseña actual es incorrecta",
+        )
+
+    if len(body.new_password) < 12:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="La nueva contraseña debe tener al menos 12 caracteres",
+        )
+
+    if body.new_password == body.current_password:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="La nueva contraseña debe ser distinta de la actual",
+        )
+
+    current_user.password_hash = hash_password(body.new_password)
+    db.commit()
+
+    # Invalidar la sesión actual: el usuario debe volver a loguearse con la nueva.
+    response.delete_cookie("access_token")
+    logger.info(f"Password cambiada para: {current_user.email}")
+    return ok(message="Contraseña actualizada. Volvé a iniciar sesión.")

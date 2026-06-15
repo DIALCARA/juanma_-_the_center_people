@@ -5,6 +5,7 @@ import { get, put } from "@/lib/api";
 import PageHeader from "@/components/ui/PageHeader";
 import FormField from "@/components/ui/FormField";
 import Alert from "@/components/ui/Alert";
+import MediaPicker, { type MediaItem } from "@/components/ui/MediaPicker";
 
 interface SiteSettings {
   band_name: string;
@@ -12,6 +13,8 @@ interface SiteSettings {
   subgenre: string;
   city: string;
   country: string;
+  hero_image_id: number | null;
+  cover_image_id: number | null;
   spotify_url: string;
   youtube_url: string;
   instagram_url: string;
@@ -32,6 +35,8 @@ const defaults: SiteSettings = {
   subgenre: "",
   city: "",
   country: "Perú",
+  hero_image_id: null,
+  cover_image_id: null,
   spotify_url: "",
   youtube_url: "",
   instagram_url: "",
@@ -46,11 +51,64 @@ const defaults: SiteSettings = {
   max_download_size_mb: 100,
 };
 
+// Preview de la imagen seleccionada. Necesita una llamada adicional para
+// obtener el thumbnail porque el GET solo trae el ID.
+function MediaPreview({ mediaId, onClear, onChange }: {
+  mediaId: number | null;
+  onClear: () => void;
+  onChange: () => void;
+}) {
+  const [item, setItem] = useState<MediaItem | null>(null);
+
+  useEffect(() => {
+    if (!mediaId) { setItem(null); return; }
+    get<{ data: MediaItem }>(`/api/admin/media/${mediaId}`)
+      .then((res) => setItem(res.data))
+      .catch(() => setItem(null));
+  }, [mediaId]);
+
+  if (!mediaId) {
+    return (
+      <button type="button" onClick={onChange} className="btn-secondary text-xs">
+        Elegir imagen
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-24 h-24 bg-neutral-800 border border-neutral-700 overflow-hidden shrink-0">
+        {item?.thumbnail_url ? (
+          <img src={item.thumbnail_url} alt={item.title || ""} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-neutral-600 text-xs">
+            {item ? "sin thumb" : "..."}
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col gap-2">
+        <p className="text-xs text-neutral-400 truncate max-w-xs">
+          {item?.title || `Media #${mediaId}`}
+        </p>
+        <div className="flex gap-2">
+          <button type="button" onClick={onChange} className="btn-ghost text-xs">
+            Cambiar
+          </button>
+          <button type="button" onClick={onClear} className="btn-ghost text-xs text-red-400 hover:text-red-300">
+            Quitar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ConfiguracionPage() {
   const [form, setForm] = useState<SiteSettings>(defaults);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [pickerTarget, setPickerTarget] = useState<"hero" | "cover" | null>(null);
 
   useEffect(() => {
     get<{ data: SiteSettings }>("/api/admin/site-settings")
@@ -65,6 +123,15 @@ export default function ConfiguracionPage() {
       ...f,
       [name]: type === "number" ? Number(value) : value,
     }));
+  }
+
+  function handleMediaSelect(media: MediaItem) {
+    if (pickerTarget === "hero") {
+      setForm((f) => ({ ...f, hero_image_id: media.id }));
+    } else if (pickerTarget === "cover") {
+      setForm((f) => ({ ...f, cover_image_id: media.id }));
+    }
+    setPickerTarget(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -110,6 +177,31 @@ export default function ConfiguracionPage() {
           <FormField label="Tagline / Descripción" htmlFor="tagline">
             <input id="tagline" name="tagline" className="input" value={form.tagline} onChange={handle} />
           </FormField>
+        </section>
+
+        <section className="card mb-6">
+          <h2 className="text-sm font-semibold text-neutral-300 mb-1 pb-2 border-b border-neutral-700">Hero del sitio</h2>
+          <p className="text-xs text-neutral-500 mb-4">
+            La imagen del hero aparece centrada sobre el video de fondo en la home.
+            Si no elegís ninguna, se usa el logo de la banda por defecto.
+            La portada se usa como imagen secundaria/cover en otras secciones.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <FormField label="Imagen del hero (sobre el video)" htmlFor="hero_image">
+              <MediaPreview
+                mediaId={form.hero_image_id}
+                onClear={() => setForm((f) => ({ ...f, hero_image_id: null }))}
+                onChange={() => setPickerTarget("hero")}
+              />
+            </FormField>
+            <FormField label="Imagen de portada (cover)" htmlFor="cover_image">
+              <MediaPreview
+                mediaId={form.cover_image_id}
+                onClear={() => setForm((f) => ({ ...f, cover_image_id: null }))}
+                onChange={() => setPickerTarget("cover")}
+              />
+            </FormField>
+          </div>
         </section>
 
         <section className="card mb-6">
@@ -160,6 +252,15 @@ export default function ConfiguracionPage() {
           {saving ? "Guardando..." : "Guardar cambios"}
         </button>
       </form>
+
+      {pickerTarget && (
+        <MediaPicker
+          typeSlug="image"
+          title={pickerTarget === "hero" ? "Elegir imagen del hero" : "Elegir imagen de portada"}
+          onSelect={handleMediaSelect}
+          onClose={() => setPickerTarget(null)}
+        />
+      )}
     </>
   );
 }

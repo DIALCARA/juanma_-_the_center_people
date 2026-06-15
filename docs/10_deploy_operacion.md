@@ -157,7 +157,7 @@ Registrar:
 - Intentos de login fallidos.
 - Subidas de multimedia.
 - Solicitudes de descarga.
-- Envíos por Mailgun.
+- Envíos SMTP (Zoho Mail).
 
 ## Seguridad básica
 

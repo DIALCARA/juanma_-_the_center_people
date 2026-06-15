@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { post } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import Alert from "@/components/ui/Alert";
+import PasswordInput from "@/components/ui/PasswordInput";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const { isAuthenticated, isLoading } = useAuth();
@@ -31,7 +33,13 @@ export default function LoginPage() {
       const redirect = params.get("redirect") ?? "/dashboard";
       router.replace(redirect);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Credenciales incorrectas");
+      // Cualquier fallo (credenciales, rate limit, red, server) muestra el
+      // mensaje del backend en un Alert estilizado — nunca window.alert.
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : "No se pudo iniciar sesión. Intentalo de nuevo en unos segundos."
+      );
     } finally {
       setLoading(false);
     }
@@ -48,6 +56,10 @@ export default function LoginPage() {
           </h1>
           <p className="text-neutral-500 text-sm">Panel de administración</p>
         </div>
+
+        {error && (
+          <Alert type="error" message={error} onClose={() => setError("")} />
+        )}
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="mb-5">
@@ -66,25 +78,14 @@ export default function LoginPage() {
 
           <div className="mb-6">
             <label htmlFor="password" className="label">Contraseña</label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={setPassword}
               required
               autoComplete="current-password"
-              className="input"
             />
           </div>
-
-          {error && (
-            <div
-              className="mb-4 p-3 border border-red-800 text-red-400 text-sm"
-              role="alert"
-            >
-              {error}
-            </div>
-          )}
 
           <button
             type="submit"
@@ -96,5 +97,13 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

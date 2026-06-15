@@ -33,8 +33,9 @@ export default function FechasPage() {
   const [alert, setAlert] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
-    get<{ data: { events: Event[] } }>("/api/admin/events")
-      .then((res) => setEvents(res.data.events ?? []))
+    // El endpoint admin devuelve un array directo en `data`, no envuelto.
+    get<{ data: Event[] }>("/api/admin/events")
+      .then((res) => setEvents(res.data ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

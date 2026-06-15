@@ -3,6 +3,13 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
+# Build-time args. En modo `output: "standalone"` Next.js evalúa los rewrites
+# y NEXT_PUBLIC_* en BUILD time, no runtime. Necesitamos pasarlos como ARG.
+ARG API_BASE_URL=http://api:8000
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV API_BASE_URL=${API_BASE_URL}
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
 COPY package.json package-lock.json* ./
 RUN npm ci --prefer-offline
 

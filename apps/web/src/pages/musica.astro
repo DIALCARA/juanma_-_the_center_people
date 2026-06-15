@@ -20,9 +20,38 @@ const spotifyUrl = musicData?.spotify_url ?? "";
 
 const artistIdMatch = spotifyUrl.match(/artist\/([A-Za-z0-9]+)/);
 const artistId = artistIdMatch?.[1] ?? "2lnewal0FLnYLAnziEcIgI";
+
+// JSON-LD: un MusicAlbum / MusicRelease por cada release. Habilita rich snippets de música.
+const releasesJsonLd = releases.map((release: any) => {
+  const type = (release.type ?? "album").toLowerCase();
+  const schemaType = type === "single" ? "MusicRecording" : "MusicAlbum";
+  return {
+    "@context": "https://schema.org",
+    "@type": schemaType,
+    name: release.title,
+    byArtist: {
+      "@type": "MusicGroup",
+      name: "Juanma & The Center People",
+    },
+    datePublished: release.release_date ?? undefined,
+    image: release.cover_url ?? undefined,
+    description: release.description ?? undefined,
+    sameAs: [release.spotify_url, release.youtube_url, release.apple_music_url].filter(Boolean),
+  };
+});
+
+const breadcrumbs = [
+  { name: "Inicio", url: "/" },
+  { name: "Música", url: "/musica" },
+];
 ---
 
-<BaseLayout title={section.title || "Música"} description="Discografía y lanzamientos de Juanma & The Center People">
+<BaseLayout
+  title={section.title || "Música"}
+  description="Discografía y lanzamientos de Juanma & The Center People"
+  jsonLd={releasesJsonLd}
+  breadcrumbs={breadcrumbs}
+>
   {!section.isEnabled && (
     <SectionUnavailable title={section.title || "Música"} message={section.message} />
   )}
@@ -85,11 +114,19 @@ const artistId = artistIdMatch?.[1] ?? "2lnewal0FLnYLAnziEcIgI";
                 </div>
               )}
               <h3 class="font-heading text-bone uppercase tracking-wider text-sm mb-1">{release.title}</h3>
-              {release.release_date && (
-                <p class="text-bone-muted text-xs mb-3">
-                  {new Date(release.release_date).getFullYear()}
-                </p>
-              )}
+              {release.release_date && (() => {
+                // Fecha completa "15 de junio de 2026" + indicador si es futuro.
+                const d = new Date(release.release_date);
+                const isFuture = d > new Date();
+                const formatted = d.toLocaleDateString("es-PE", {
+                  day: "numeric", month: "long", year: "numeric"
+                });
+                return (
+                  <p class={`text-xs mb-3 ${isFuture ? "text-red-band font-heading uppercase tracking-wider" : "text-bone-muted"}`}>
+                    {isFuture ? `Próximamente · ${formatted}` : formatted}
+                  </p>
+                );
+              })()}
               {release.description && (
                 <p class="text-bone-muted text-xs leading-relaxed font-light mb-3">{release.description}</p>
               )}

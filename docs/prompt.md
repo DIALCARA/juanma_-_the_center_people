@@ -14,7 +14,7 @@ Construir un proyecto con:
 - Backend/API CMS en FastAPI.
 - Base de datos SQLite.
 - Multimedia en filesystem local del VPS.
-- Email con Mailgun.
+- Email SMTP con Zoho Mail.
 - Analítica con Umami.
 - Deploy con Docker Compose y Traefik.
 - Inicio por IP y posterior dominio.
@@ -51,7 +51,7 @@ juanma-epk/
 8. Google Photos debe tratarse como fuente temporal `best effort`, no como storage final obligatorio.
 9. Los downloads deben soportar acceso público, privado y bajo solicitud/aprobación.
 10. El rider técnico debe poder editarse desde CMS usando plantillas.
-11. El formulario de contacto debe guardar mensaje y enviar por Mailgun.
+11. El formulario de contacto debe guardar mensaje y enviar por SMTP (Zoho Mail).
 12. Umami debe medir páginas y eventos personalizados.
 13. El sistema debe correr con Docker Compose.
 14. Las variables sensibles deben ir en `.env`, nunca hardcodeadas.
@@ -68,7 +68,7 @@ Implementa en este orden:
 5. Upload de imágenes + thumbnails.
 6. Astro público con home y páginas principales.
 7. CMS básico.
-8. Contacto + Mailgun.
+8. Contacto + SMTP (Zoho Mail).
 9. Downloads con solicitud/aprobación.
 10. Rider técnico editable.
 11. Umami.

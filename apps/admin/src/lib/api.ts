@@ -24,7 +24,8 @@ async function request<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.message ?? res.statusText);
+    // FastAPI usa `detail` para HTTPException; nuestros responses propios usan `message`.
+    throw new ApiError(res.status, body.message ?? body.detail ?? res.statusText);
   }
 
   return res.json();
@@ -60,7 +61,8 @@ export async function upload<T>(path: string, formData: FormData): Promise<T> {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.message ?? res.statusText);
+    // FastAPI usa `detail` para HTTPException; nuestros responses propios usan `message`.
+    throw new ApiError(res.status, body.message ?? body.detail ?? res.statusText);
   }
   return res.json();
 }

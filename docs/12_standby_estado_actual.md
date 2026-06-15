@@ -30,7 +30,7 @@
 | Rider técnico | ⏳ Sin validar end-to-end | 9 sub-secciones implementadas |
 | Descargas | 🔄 Parcial | Endpoint de upload funciona, MediaPicker para "Elegir de la galería" funciona. Falta validar flujo completo de solicitud + aprobación + email |
 | Mensajes | ⏳ Sin validar end-to-end | Bandeja funciona en CMS, faltó probar envío real desde el form público |
-| Solicitudes de descarga | ⏳ Sin validar end-to-end | Aprobar/rechazar implementado, falta probar email Mailgun |
+| Solicitudes de descarga | ⏳ Sin validar end-to-end | Aprobar/rechazar implementado, falta probar email SMTP (Zoho) |
 
 ## Estado de la home pública
 
@@ -99,7 +99,7 @@ La DB local con todo el contenido cargado vive en:
 - `apps/api/data/app.db` (SQLite — está en `.gitignore`, no se subió al repo)
 - `apps/api/storage/media/` (carpeta con las imágenes procesadas que cargaste — también ignorada)
 
-> ⚠️ **El path `apps/api/storage/media/` es por un bug conocido**: `MEDIA_ROOT=./storage/media` en `.env.local.example` es relativo al cwd donde corre uvicorn (`apps/api/`). En producción Docker queda en `/media/juanma-center-people/` y no hay problema. Para fixearlo en local habría que cambiar a path absoluto en `config.py`. No urgente.
+> ⚠️ **El path `apps/api/storage/media/` es por un bug conocido**: si `MEDIA_ROOT` se configura como `./storage/media` en `.env`, queda relativo al cwd donde corre uvicorn (`apps/api/`). En producción Docker queda en `/media/juanma-center-people/` y no hay problema.
 
 ---
 
@@ -173,10 +173,14 @@ MEDIA_PUBLIC_URL=https://api.juanma-band.com/media
 JWT_SECRET=<el-output-de-openssl-rand-hex-32>
 JWT_EXPIRE_MINUTES=1440
 
-# Email — completar con cuenta Mailgun real
-MAILGUN_API_KEY=key-XXXXXXXX
-MAILGUN_DOMAIN=mg.juanma-band.com
-MAILGUN_FROM_EMAIL=noreply@mg.juanma-band.com
+# Email SMTP — completar con cuenta Zoho Mail real
+SMTP_HOST=smtp.zoho.com
+SMTP_PORT=587
+SMTP_USER=noreply@juanma-band.com
+SMTP_PASSWORD=<app-password-generado-en-Zoho>
+SMTP_FROM_EMAIL=noreply@juanma-band.com
+SMTP_FROM_NAME=Juanma & The Center People
+SMTP_USE_TLS=true
 ADMIN_NOTIFICATION_EMAIL=admin@juanma-band.com
 
 # Umami (opcional — se completa después de crear el sitio en Umami)
@@ -325,7 +329,7 @@ Acceder a `https://analytics.juanma-band.com` (o el subdominio que decidas), cre
 
 ### Limitaciones del MVP
 - **Sin transcodificación de video:** las URLs externas se asume que YouTube las maneja
-- **Sin notificaciones in-app:** todo via email Mailgun
+- **Sin notificaciones in-app:** todo via email SMTP (Zoho Mail)
 - **Sin búsqueda:** las páginas públicas no tienen buscador
 - **Sin gestión de tags por foto:** el campo existe en DB pero no hay UI
 - **Sin roles múltiples:** solo `admin_editor`
@@ -344,7 +348,7 @@ Orden sugerido:
 6. **Lighthouse + Pagespeed:** medir performance real
 7. **Tests E2E con Playwright:** los hay creados pero no se ejecutaron contra producción
 8. **Multiidioma:** estructura para inglés (fase 2 según prompt original)
-9. **Cuenta de Mailgun con dominio propio** (`mg.juanma-band.com`)
+9. **Cuenta de Zoho Mail con dominio propio** (verificación + SPF/DKIM/DMARC)
 10. **JSON-LD adicionales:** Event, WebSite, BreadcrumbList
 
 ---

@@ -201,7 +201,7 @@ empty_state_message
 
 Debe incluir:
 
-- Formulario con Mailgun.
+- Formulario con envío SMTP (Zoho Mail).
 - Redes sociales.
 - Correo público si se decide mostrar.
 - Motivo de contacto.

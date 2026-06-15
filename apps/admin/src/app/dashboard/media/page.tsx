@@ -192,10 +192,12 @@ export default function MediaPage() {
     setUploading(true);
     setAlert(null);
     try {
+      // El backend espera media_type_slug (string), no media_type_id (number).
+      // Sin esto siempre quedaba guardado como "video" aunque eligieras "reel".
       const res = await post<{ data: MediaItem }>("/api/admin/media/video", {
         source_url: videoUrl,
         title: videoTitle,
-        media_type_id: selectedTypeId || undefined,
+        media_type_slug: selectedTypeSlug || "video",
         category_id: selectedCategoryId || undefined,
       });
       setItems((i) => [res.data, ...i]);

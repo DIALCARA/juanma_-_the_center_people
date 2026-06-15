@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reels — Juanma &amp; the Center People</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070707; --bg2:#111; --ink:#f3f1ec; --muted:#7c7872;
+  --red:#e8402a; --red-soft:#ff5a42; --line:rgba(243,241,236,.1);
+  --display:'Anton',sans-serif; --mono:'Space Mono',monospace; --body:'Archivo',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:9998;opacity:.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+/* —— chrome de página falso, sólo para mostrar que va EMBEBIDO —— */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:18px 34px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(7,7,7,.85);backdrop-filter:blur(10px);z-index:500}
+.nav .logo{font-family:var(--display);font-size:1.1rem;letter-spacing:.02em;line-height:.8;text-transform:uppercase}
+.nav .logo small{display:block;font-family:var(--mono);font-size:.42rem;letter-spacing:.22em;color:var(--muted)}
+.nav .menu{display:flex;gap:22px;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.nav .menu a{color:inherit;text-decoration:none;transition:.3s}
+.nav .menu a.on{color:var(--red)}
+.nav .menu a:hover{color:var(--ink)}
+.spacer{padding:60px 20px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:.7rem;letter-spacing:.1em}
+
+/* ——— SECCIÓN REELS (esto es lo que embebés) ——— */
+.reels{position:relative;padding:30px 0 10px;overflow:hidden}
+.reels::before{content:"";position:absolute;top:-10%;left:50%;transform:translateX(-50%);width:90vw;height:60vh;
+  background:radial-gradient(ellipse at center,rgba(232,64,42,.13),transparent 60%);pointer-events:none}
+.head-r{text-align:center;position:relative;z-index:2}
+.kicker{font-family:var(--mono);font-size:.72rem;letter-spacing:.42em;text-transform:uppercase;color:var(--red);margin-bottom:10px}
+h1{font-family:var(--display);font-size:clamp(3rem,10vw,6.2rem);line-height:.85;text-transform:uppercase}
+.count{font-family:var(--mono);font-size:.8rem;color:var(--muted);margin-top:12px;letter-spacing:.06em}
+
+.filters{display:flex;justify-content:center;gap:8px;margin:24px 0 6px;flex-wrap:wrap;position:relative;z-index:2}
+.chip{font-family:var(--mono);font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;background:transparent;color:var(--muted);
+  border:1px solid var(--line);padding:9px 18px;border-radius:4px;cursor:pointer;transition:.3s}
+.chip:hover{color:var(--ink);border-color:var(--ink)}
+.chip.active{background:var(--red);color:#070707;border-color:var(--red);font-weight:700}
+.chip small{opacity:.7;font-weight:400}
+
+#stage{position:relative;height:600px;display:flex;align-items:center;justify-content:center;perspective:1800px;z-index:1;touch-action:pan-y}
+#deck{position:relative;width:330px;height:540px;transform-style:preserve-3d}
+
+.reel{position:absolute;top:0;left:0;width:330px;height:540px;transform-style:preserve-3d;cursor:pointer;
+  transition:transform .65s cubic-bezier(.16,.84,.3,1),opacity .55s,filter .55s;will-change:transform,opacity}
+.reel .frame{position:absolute;inset:0;border-radius:18px;overflow:hidden;background:var(--bg2);
+  box-shadow:0 30px 70px rgba(0,0,0,.6),0 2px 8px rgba(0,0,0,.5);outline:1px solid rgba(255,255,255,.06)}
+.reel .frame img{width:100%;height:100%;object-fit:cover;filter:brightness(.78) contrast(1.05);transform:scale(1.05);transition:filter .6s}
+.reel.center .frame img{animation:ken 14s ease-in-out infinite alternate;filter:brightness(.96) contrast(1.06)}
+@keyframes ken{from{transform:scale(1.05) translate(0,0)}to{transform:scale(1.18) translate(-2%,-3%)}}
+.reel .veil{position:absolute;inset:0;border-radius:18px;pointer-events:none;
+  background:linear-gradient(to top,rgba(7,7,7,.92) 4%,rgba(7,7,7,.2) 34%,transparent 52%,rgba(7,7,7,.35) 100%)}
+.prog{position:absolute;top:12px;left:12px;right:12px;height:3px;border-radius:3px;background:rgba(255,255,255,.22);overflow:hidden;z-index:5;opacity:0;transition:.4s}
+.reel.center .prog{opacity:1}
+.prog i{display:block;height:100%;width:0;background:var(--ink)}
+.head{position:absolute;top:26px;left:14px;right:14px;display:flex;align-items:center;gap:9px;z-index:5}
+.head .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--red),#b51f10);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:.8rem;color:#fff}
+.head .who{font-size:.72rem;font-weight:600;line-height:1.1}
+.head .who span{display:block;font-family:var(--mono);font-size:.56rem;color:var(--muted);font-weight:400}
+.kind{margin-left:auto;font-family:var(--mono);font-size:.52rem;letter-spacing:.12em;color:var(--red-soft);border:1px solid var(--red);border-radius:3px;padding:3px 6px}
+.wm{position:absolute;top:48%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:3;pointer-events:none;opacity:.9;mix-blend-mode:overlay}
+.wm b{font-family:var(--display);font-size:1.4rem;display:block;line-height:.9;text-transform:uppercase}
+.wm small{font-family:var(--mono);font-size:.48rem;letter-spacing:.3em}
+.playbtn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;width:64px;height:64px;border-radius:50%;
+  background:rgba(7,7,7,.45);backdrop-filter:blur(4px);border:1.5px solid rgba(255,255,255,.55);display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .4s,transform .3s;pointer-events:none}
+.playbtn::after{content:"";border-left:18px solid #fff;border-top:12px solid transparent;border-bottom:12px solid transparent;margin-left:4px}
+.reel.center .playbtn{opacity:1}
+.reel.center:hover .playbtn{transform:translate(-50%,-50%) scale(1.1)}
+.cap{position:absolute;left:16px;right:62px;bottom:18px;z-index:5}
+.cap .t{font-family:var(--display);font-size:1.15rem;line-height:1.02;text-transform:uppercase}
+.cap .audio{display:inline-flex;align-items:center;gap:6px;margin-top:9px;font-family:var(--mono);font-size:.6rem;letter-spacing:.06em;
+  background:rgba(255,255,255,.08);border:1px solid var(--line);padding:4px 9px;border-radius:100px}
+.cap .audio .note{animation:spin 3s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.rail{position:absolute;right:10px;bottom:20px;z-index:7;display:flex;flex-direction:column;gap:15px;align-items:center;opacity:0;transform:translateX(10px);transition:.5s .1s;pointer-events:none}
+.reel.center .rail{opacity:1;transform:none;pointer-events:auto}
+.act{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:none;color:var(--ink)}
+.act .ic{width:42px;height:42px;border-radius:50%;background:rgba(7,7,7,.45);backdrop-filter:blur(6px);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:1.15rem;transition:.25s}
+.act:hover .ic{transform:scale(1.12)}
+.act .n{font-family:var(--mono);font-size:.56rem}
+.act.liked .ic{background:var(--red);border-color:var(--red)}
+.act.liked .heart{color:#fff}
+.heart{transition:transform .25s}
+.act.ig .ic{background:linear-gradient(135deg,#f9ce34,#ee2a7b 45%,#6228d7)}
+.act.yt .ic{background:#ff0033}
+.floatheart{position:absolute;right:24px;bottom:70px;z-index:8;font-size:1.2rem;pointer-events:none;color:var(--red-soft)}
+@keyframes floatup{0%{opacity:0;transform:translateY(0) scale(.5)}15%{opacity:1}100%{opacity:0;transform:translateY(-150px) scale(1.3) rotate(var(--r))}}
+
+.controls{display:flex;align-items:center;justify-content:center;gap:18px;padding:4px 0 6px;position:relative;z-index:2}
+.arrow{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.3s}
+.arrow:hover{background:var(--red);border-color:var(--red);color:#070707}
+.dots{display:flex;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.22);cursor:pointer;transition:.3s}
+.dot.on{background:var(--red);width:26px;border-radius:100px}
+.idxnum{text-align:center;font-family:var(--mono);font-size:.76rem;color:var(--muted);letter-spacing:.08em;padding:8px 0 4px}
+.swipehint{text-align:center;font-family:var(--mono);font-size:.62rem;color:var(--muted);letter-spacing:.1em;padding-bottom:34px}
+.swipehint b{color:var(--red-soft);font-weight:400}
+
+/* —— visor (embed on demand) —— */
+.viewer{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:rgba(5,5,7,.9);backdrop-filter:blur(14px);opacity:0;visibility:hidden;transition:.4s}
+.viewer.open{opacity:1;visibility:visible}
+.v-inner{position:relative;width:100%;max-width:380px;transform:scale(.94);transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+.viewer.open .v-inner{transform:none}
+.v-embed{width:100%;border-radius:14px;overflow:hidden;background:#000;min-height:400px;display:flex;align-items:center;justify-content:center}
+.v-embed iframe{width:100%;aspect-ratio:9/16;border:0;display:block}
+.v-embed .fallback{width:100%;text-align:center}
+.v-embed .fallback img{width:100%;display:block}
+.v-meta{margin-top:14px;display:flex;justify-content:space-between;align-items:flex-end;gap:14px}
+.v-meta .t{font-family:var(--display);font-size:1.4rem;text-transform:uppercase;line-height:.95}
+.v-meta .c{font-family:var(--mono);font-size:.64rem;color:var(--red-soft);letter-spacing:.1em;margin-top:6px}
+.v-out{font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-decoration:none;color:#070707;background:var(--ink);padding:10px 14px;border-radius:6px;white-space:nowrap;transition:.3s}
+.v-out:hover{background:var(--red);color:#070707}
+.v-close{position:absolute;top:-42px;right:0;background:none;border:none;color:var(--ink);font-family:var(--mono);font-size:.74rem;letter-spacing:.1em;cursor:pointer}
+.v-close:hover{color:var(--red)}
+
+@media(max-width:560px){
+  #deck,.reel{width:270px;height:460px}
+  #stage{height:520px}
+  .nav .menu{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- chrome falso: muestra el contexto de la web -->
+<nav class="nav">
+  <div class="logo">JUANMA<small>&amp; the center people</small></div>
+  <div class="menu"><a>Inicio</a><a>Banda</a><a>Música</a><a>Fotos</a><a class="on">Reels</a><a>Fechas</a></div>
+</nav>
+<div class="spacer">↑ resto de tu página · la sección Reels va embebida abajo · podés scrollear normal ↓</div>
+
+<!-- ====== SECCIÓN REELS ====== -->
+<section class="reels">
+  <div class="head-r">
+    <div class="kicker">contenido corto</div>
+    <h1>Reels</h1>
+    <div class="count" id="count"></div>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="chip active" data-cat="all">todos</button>
+    <button class="chip" data-cat="promocionales">promocionales <small id="c-promo"></small></button>
+    <button class="chip" data-cat="backstage">backstage <small id="c-back"></small></button>
+    <button class="chip" data-cat="musica">música <small id="c-mus"></small></button>
+  </div>
+
+  <div id="stage"><div id="deck"></div></div>
+
+  <div class="controls">
+    <button class="arrow" id="prev">‹</button>
+    <div class="dots" id="dots"></div>
+    <button class="arrow" id="next">›</button>
+  </div>
+  <div class="idxnum" id="idxnum"></div>
+  <div class="swipehint">arrastrá o usá <b>← →</b> · tocá el reel para <b>verlo embebido</b> · ♥ para reaccionar</div>
+</section>
+
+<div class="spacer">↓ acá sigue tu página (prensa, contacto, footer…) ↓</div>
+
+<!-- visor -->
+<div class="viewer" id="viewer">
+  <div class="v-inner">
+    <button class="v-close" id="vclose">[ esc ] cerrar ✕</button>
+    <div class="v-embed" id="vembed"></div>
+    <div class="v-meta">
+      <div><div class="t" id="vt"></div><div class="c" id="vc"></div></div>
+      <a class="v-out" id="vout" target="_blank" rel="noopener">ver original ↗</a>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════ DATOS — reemplazá por tus reels reales ═══════
+   type: 'instagram' | 'youtube'
+   url : link al reel/short  ·  yt: id de YouTube (para short/video)
+   poster: miniatura (subí un still propio; para YT podés usar img.youtube.com/vi/ID/maxresdefault.jpg)   */
+const REELS=[
+  {cat:'backstage',     type:'instagram', t:'Sesión de fotos con Agustín', audio:'Despertar (Esa)',      likes:412, url:'https://www.instagram.com/juanma_centerpeople/', poster:'https://picsum.photos/seed/1041/540/960'},
+  {cat:'promocionales', type:'instagram', t:'El sonido toma forma',        audio:'Audio original',       likes:980, url:'https://www.instagram.com/juanma_centerpeople/', poster:'https://picsum.photos/seed/1052/540/960'},
+  {cat:'musica',        type:'youtube',   t:'Adelanto del próximo single', audio:'Single 2025 · demo',   likes:1530,yt:'aqz-KE-bpKQ', url:'https://youtube.com/', poster:'https://picsum.photos/seed/1063/540/960'},
+  {cat:'backstage',     type:'instagram', t:'Ensayo general en El Brujo',  audio:'Center People · live', likes:744, url:'https://www.instagram.com/juanma_centerpeople/', poster:'https://picsum.photos/seed/1074/540/960'},
+  {cat:'promocionales', type:'youtube',   t:'Anuncio de fecha · Madrid',   audio:'Audio original',       likes:1208,yt:'aqz-KE-bpKQ', url:'https://youtube.com/', poster:'https://picsum.photos/seed/1085/540/960'},
+  {cat:'musica',        type:'instagram', t:'Letra en proceso',            audio:'Voz y guitarra',       likes:633, url:'https://www.instagram.com/juanma_centerpeople/', poster:'https://picsum.photos/seed/1096/540/960'},
+];
+
+const deck=document.getElementById('deck');
+const AUTO_MS=7000;
+let order=[],center=0,raf=null,progStart=0;
+let pHold=false,pModal=false,pView=true;       // flags de pausa
+
+function fmt(n){return n>=1000?(n/1000).toFixed(1).replace('.0','')+'k':n}
+
+REELS.forEach((r,i)=>{
+  const el=document.createElement('div');el.className='reel';el.dataset.idx=i;
+  el.innerHTML=`
+    <div class="frame">
+      <img src="${r.poster}" alt="${r.t}" draggable="false">
+      <div class="veil"></div>
+      <div class="prog"><i></i></div>
+      <div class="head"><div class="av">J</div>
+        <div class="who">juanma_centerpeople<span>${r.cat}</span></div>
+        <span class="kind">${r.type==='youtube'?'▶ short':'● reel'}</span></div>
+      <div class="wm"><b>Juanma</b><small>& the center people</small></div>
+      <div class="playbtn"></div>
+      <div class="cap"><div class="t">${r.t}</div>
+        <div class="audio"><span class="note">♪</span> ${r.audio}</div></div>
+      <div class="rail">
+        <button class="act like"><span class="ic"><span class="heart">♥</span></span><span class="n">${fmt(r.likes)}</span></button>
+        <button class="act ${r.type==='youtube'?'yt':'ig'} open"><span class="ic">${r.type==='youtube'?'▶':'⌾'}</span><span class="n">${r.type==='youtube'?'YouTube':'Instagram'}</span></button>
+        <button class="act share"><span class="ic">↗</span><span class="n">compartir</span></button>
+      </div>
+    </div>`;
+  el._data=r;el._likes=r.likes;el._liked=false;
+  deck.appendChild(el);
+});
+const cards=[...deck.children];
+
+/* coverflow */
+function layout(){
+  const N=order.length;
+  cards.forEach(c=>{c.style.opacity='0';c.style.pointerEvents='none';c.classList.remove('center')});
+  order.forEach((ci,p)=>{
+    const c=cards[ci];let off=p-center;
+    if(off>N/2)off-=N;if(off<-N/2)off+=N;
+    const a=Math.abs(off);if(a>2){return;}
+    c.style.transform=`translateX(${off*150}px) translateZ(${-a*240}px) rotateY(${off*-32}deg) scale(${off===0?1:.82-a*.06})`;
+    c.style.opacity=off===0?1:(a===1?.62:.28);
+    c.style.zIndex=50-a;c.style.pointerEvents='auto';
+    c.style.filter=off===0?'none':'brightness(.6) saturate(.7)';
+    if(off===0)c.classList.add('center');
+  });
+  updateUI();restartAuto();
+}
+function go(d){center=(center+d+order.length)%order.length;layout();}
+function setCenter(p){center=((p%order.length)+order.length)%order.length;layout();}
+
+document.getElementById('next').onclick=()=>go(1);
+document.getElementById('prev').onclick=()=>go(-1);
+addEventListener('keydown',e=>{
+  if(pModal){if(e.key==='Escape')closeViewer();return;}
+  if(e.key==='ArrowRight')go(1);if(e.key==='ArrowLeft')go(-1);
+});
+
+/* clicks */
+deck.addEventListener('click',e=>{
+  if(dragMoved)return;
+  const card=e.target.closest('.reel');if(!card)return;
+  const p=order.indexOf(+card.dataset.idx);
+  if(p!==center){setCenter(p);return;}
+  if(e.target.closest('.like')){toggleLike(card);return;}
+  if(e.target.closest('.share')){return;}     // tu lógica de compartir
+  openViewer(card);                            // play / open IG botón / click en media => visor
+});
+
+function toggleLike(card){
+  card._liked=!card._liked;card._likes+=card._liked?1:-1;
+  const b=card.querySelector('.like');b.querySelector('.n').textContent=fmt(card._likes);
+  b.classList.toggle('liked',card._liked);
+  if(card._liked)burst(card);
+}
+function burst(card){
+  const f=card.querySelector('.frame');
+  for(let i=0;i<6;i++){const h=document.createElement('div');h.className='floatheart';h.textContent='♥';
+    h.style.right=(18+Math.random()*30)+'px';h.style.setProperty('--r',(Math.random()*60-30)+'deg');
+    h.style.animation=`floatup ${1+Math.random()*.7}s ease-out forwards`;h.style.animationDelay=(i*.05)+'s';
+    f.appendChild(h);setTimeout(()=>h.remove(),1900);}
+}
+
+/* arrastre horizontal (no toca el scroll vertical) */
+let down=false,startX=0,dragMoved=false;
+const stage=document.getElementById('stage');
+stage.addEventListener('pointerdown',e=>{down=true;dragMoved=false;startX=e.clientX;pHold=true;});
+stage.addEventListener('pointermove',e=>{if(down&&Math.abs(e.clientX-startX)>6)dragMoved=true;});
+stage.addEventListener('pointerup',e=>{
+  if(!down)return;down=false;pHold=false;const dx=e.clientX-startX;
+  if(dx<-50)go(1);else if(dx>50)go(-1);else restartAuto();
+});
+stage.addEventListener('pointercancel',()=>{down=false;pHold=false;});
+
+/* visor: carga el embed REAL sólo al abrir (facade) */
+const viewer=document.getElementById('viewer'),vembed=document.getElementById('vembed'),
+      vt=document.getElementById('vt'),vc=document.getElementById('vc'),vout=document.getElementById('vout');
+function openViewer(card){
+  const r=card._data;pModal=true;
+  vt.textContent=r.t;vc.textContent=(r.type==='youtube'?'YouTube':'Instagram')+' · '+r.audio;
+  vout.href=r.url;vout.textContent=(r.type==='youtube'?'ver en YouTube ↗':'ver en Instagram ↗');
+  vembed.innerHTML='';
+  if(r.type==='youtube'&&r.yt){
+    const f=document.createElement('iframe');
+    f.src=`https://www.youtube.com/embed/${r.yt}?autoplay=1&rel=0`;
+    f.allow='autoplay; encrypted-media; picture-in-picture';f.allowFullscreen=true;
+    vembed.appendChild(f);
+  }else if(r.type==='instagram'&&r.url&&r.url.includes('/p/')||r.url&&r.url.includes('/reel/')){
+    const bq=document.createElement('blockquote');bq.className='instagram-media';
+    bq.setAttribute('data-instgrm-permalink',r.url);bq.setAttribute('data-instgrm-version','14');
+    bq.style.width='100%';bq.style.margin='0';vembed.appendChild(bq);
+    loadIG(()=>window.instgrm&&window.instgrm.Embeds.process());
+  }else{
+    vembed.innerHTML=`<div class="fallback"><img src="${r.poster}" alt=""></div>`; // placeholder: poniendo la URL real del reel carga el embed
+  }
+  viewer.classList.add('open');
+}
+function closeViewer(){pModal=false;viewer.classList.remove('open');setTimeout(()=>vembed.innerHTML='',400);restartAuto();}
+document.getElementById('vclose').onclick=closeViewer;
+viewer.addEventListener('click',e=>{if(e.target===viewer)closeViewer();});
+function loadIG(cb){if(window.instgrm)return cb();let s=document.getElementById('ig-js');
+  if(!s){s=document.createElement('script');s.id='ig-js';s.async=true;s.src='https://www.instagram.com/embed.js';document.body.appendChild(s);}
+  let n=0;const t=setInterval(()=>{if(window.instgrm){clearInterval(t);cb();}else if(++n>40)clearInterval(t);},150);}
+
+/* autoplay tipo stories — pausa si: arrastre, visor abierto, o sección fuera de pantalla */
+function paused(){return pHold||pModal||!pView}
+function restartAuto(){cancelAnimationFrame(raf);progStart=performance.now();
+  const b=cards[order[center]]?.querySelector('.prog i');if(b)b.style.width='0%';step();}
+function step(){raf=requestAnimationFrame(step);
+  const b=cards[order[center]]?.querySelector('.prog i');if(!b)return;
+  if(paused()){progStart=performance.now()-(parseFloat(b.style.width||0)/100*AUTO_MS);return;}
+  const el=(performance.now()-progStart)/AUTO_MS;b.style.width=Math.min(el*100,100)+'%';
+  if(el>=1)go(1);}
+new IntersectionObserver(([e])=>{pView=e.isIntersecting&&e.intersectionRatio>.3;},{threshold:[0,.3,.6]}).observe(stage);
+
+/* filtros */
+const counts={promocionales:0,backstage:0,musica:0};
+REELS.forEach(r=>counts[r.cat]++);
+c_promo.textContent='('+counts.promocionales+')';c_back.textContent='('+counts.backstage+')';c_mus.textContent='('+counts.musica+')';
+document.getElementById('filters').addEventListener('click',e=>{
+  const b=e.target.closest('.chip');if(!b)return;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));b.classList.add('active');
+  order=cards.map((c,i)=>i).filter(i=>b.dataset.cat==='all'||REELS[i].cat===b.dataset.cat);
+  center=0;layout();
+});
+
+/* UI */
+const dotsEl=document.getElementById('dots'),idxnum=document.getElementById('idxnum'),countEl=document.getElementById('count');
+function updateUI(){
+  dotsEl.innerHTML='';order.forEach((_,p)=>{const d=document.createElement('div');d.className='dot'+(p===center?' on':'');d.onclick=()=>setCenter(p);dotsEl.appendChild(d);});
+  idxnum.textContent=String(center+1).padStart(2,'0')+' / '+String(order.length).padStart(2,'0');
+  countEl.textContent=REELS.length+' reels · arrastrá el deck';
+}
+
+order=cards.map((c,i)=>i);layout();
+</script>
+</body>
+</html>

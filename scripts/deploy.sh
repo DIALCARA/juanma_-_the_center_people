@@ -12,16 +12,16 @@ fi
 
 # Build de imágenes de producción
 echo "→ Construyendo imágenes..."
-docker compose -f infra/docker-compose.prod.yml build --no-cache
+docker compose --env-file .env -f infra/docker-compose.prod.yml build --no-cache
 
 # Levantar servicios
 echo "→ Levantando servicios..."
-docker compose -f infra/docker-compose.prod.yml up -d
+docker compose --env-file .env -f infra/docker-compose.prod.yml up -d
 
 # Esperar que la API esté lista
 echo "→ Esperando API..."
 sleep 5
-docker compose -f infra/docker-compose.prod.yml exec api curl -sf http://localhost:8000/health || echo "  ⚠ API no responde aún"
+docker compose --env-file .env -f infra/docker-compose.prod.yml exec api curl -sf http://localhost:8000/health || echo "  ⚠ API no responde aún"
 
 echo ""
 echo "✓ Deploy completado."

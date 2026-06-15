@@ -43,7 +43,7 @@ class DownloadRequest(Base):
     email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     organization: Mapped[str | None] = mapped_column(String(200), nullable=True)
     # prensa | booking | festival | colaboracion | otro
-    reason: Mapped[str] = mapped_column(String(50), nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
     # pending | approved | rejected | expired
     status: Mapped[str] = mapped_column(String(20), default="pending", index=True)

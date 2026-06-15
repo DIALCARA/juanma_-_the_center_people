@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { post } from "@/lib/api";
@@ -21,7 +22,13 @@ export default function TopBar() {
       <div />
       <div className="flex items-center gap-4">
         {user && (
-          <span className="text-xs text-neutral-500">{user.email}</span>
+          <Link
+            href="/dashboard/perfil"
+            className="text-xs text-neutral-500 hover:text-neutral-200 transition-colors"
+            title="Mi perfil"
+          >
+            {user.email}
+          </Link>
         )}
         <button
           onClick={handleLogout}

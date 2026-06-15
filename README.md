@@ -15,8 +15,16 @@ juanma-epk/
 ├── infra/        # Docker Compose (dev y producción)
 ├── scripts/      # Scripts operacionales
 ├── docs/         # Especificaciones del proyecto
-└── .env.example  # Variables de entorno (copiar como .env)
+├── .env          # Config real usada por Docker/app (no versionar)
+├── .env.example  # Plantilla para crear .env
+└── .env.deploy.example # Plantilla opcional para deploy remoto SSH
 ```
+
+## Archivos de entorno
+
+- `.env`: único archivo real que usa la app en local y producción. Docker Compose lo carga con `--env-file .env` y `env_file: ../.env`.
+- `.env.example`: plantilla de variables de la app. Se copia como `.env` y se completa.
+- `.env.deploy.example`: plantilla para crear `.env.deploy`, usada solo por `scripts/deploy-remote.sh` para datos SSH/path del servidor. No la usa la app.
 
 ## Requisitos
 

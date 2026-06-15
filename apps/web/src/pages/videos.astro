@@ -34,7 +34,11 @@ function extractYoutubeId(url: string): string | null {
 }
 ---
 
-<BaseLayout title={section.title || "Videos"} description="Videoclips y presentaciones de Juanma & The Center People">
+<BaseLayout
+  title={section.title || "Videos"}
+  description="Videoclips y presentaciones de Juanma & The Center People"
+  breadcrumbs={[{ name: "Inicio", url: "/" }, { name: "Videos", url: "/videos" }]}
+>
   {!section.isEnabled && (
     <SectionUnavailable title={section.title || "Videos"} message={section.message} />
   )}

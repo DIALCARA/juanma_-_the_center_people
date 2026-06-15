@@ -21,10 +21,11 @@ services:
       - MEDIA_ROOT=/media/juanma-center-people
       - MEDIA_PUBLIC_URL=https://api.${DOMAIN}/media
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python3", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status == 200 else 1)"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     networks:
       - traefik_net
@@ -41,12 +42,20 @@ services:
     build:
       context: ../apps/web
       dockerfile: Dockerfile
+      args:
+        PUBLIC_SITE_URL: https://www.${DOMAIN}
+        API_BASE_URL: http://api:8000
     env_file:
       - ../.env
     environment:
       - APP_ENV=production
       - API_BASE_URL=http://api:8000
       - PUBLIC_SITE_URL=https://www.${DOMAIN}
+    # Bind-mount de assets pesados que no queremos bakear en la imagen Docker.
+    # Permite cambiar el video/imagen del hero sin rebuild.
+    volumes:
+      - ../apps/web/public/hero-bg.mp4:/app/dist/client/hero-bg.mp4:ro
+      - ../apps/web/public/hero-bg.webm:/app/dist/client/hero-bg.webm:ro
     depends_on:
       - api
     restart: unless-stopped
@@ -64,15 +73,41 @@ services:
       - "traefik.http.middlewares.juanma-www-redirect.redirectregex.replacement=https://www.${DOMAIN}/$${1}"
       - "traefik.http.routers.juanma-web.middlewares=juanma-www-redirect"
 
+      # ── Dominios alternos (.online y .store) → redirect 301 a .com ──
+      # Cualquier subdominio o raíz de los dominios alternos cae aquí.
+      - "traefik.http.routers.juanma-alt-redirect.rule=HostRegexp(`^([a-z0-9-]+\\.)?juanmacenterpeople\\.online$$`) || HostRegexp(`^([a-z0-9-]+\\.)?juanmacenterpeople\\.store$$`)"
+      - "traefik.http.routers.juanma-alt-redirect.entrypoints=websecure"
+      - "traefik.http.routers.juanma-alt-redirect.tls.certresolver=${CERT_RESOLVER}"
+      - "traefik.http.routers.juanma-alt-redirect.service=juanma-web"
+      - "traefik.http.routers.juanma-alt-redirect.middlewares=juanma-alt-redirect-mw"
+      # SANs explícitos para que Let's Encrypt emita certs de raíz y subdominios
+      - "traefik.http.routers.juanma-alt-redirect.tls.domains[0].main=juanmacenterpeople.online"
+      - "traefik.http.routers.juanma-alt-redirect.tls.domains[0].sans=www.juanmacenterpeople.online,api.juanmacenterpeople.online,admin.juanmacenterpeople.online,analytics.juanmacenterpeople.online"
+      - "traefik.http.routers.juanma-alt-redirect.tls.domains[1].main=juanmacenterpeople.store"
+      - "traefik.http.routers.juanma-alt-redirect.tls.domains[1].sans=www.juanmacenterpeople.store,api.juanmacenterpeople.store,admin.juanmacenterpeople.store,analytics.juanmacenterpeople.store"
+      # Middleware: conserva el subdominio (si lo hay) y reemplaza el TLD por .com
+      # juanmacenterpeople.online/foo → juanmacenterpeople.com/foo (luego www-redirect la lleva a www.com/foo)
+      # api.juanmacenterpeople.store/x → api.juanmacenterpeople.com/x
+      - "traefik.http.middlewares.juanma-alt-redirect-mw.redirectregex.regex=^https?://([^/]*?)juanmacenterpeople\\.(online|store)(/.*)?$$"
+      - "traefik.http.middlewares.juanma-alt-redirect-mw.redirectregex.replacement=https://$${1}juanmacenterpeople.com$${3}"
+      - "traefik.http.middlewares.juanma-alt-redirect-mw.redirectregex.permanent=true"
+
   # ─── Backoffice CMS (Next.js) ──────────────────────────────────────────────
   admin:
     build:
       context: ../apps/admin
       dockerfile: Dockerfile
+      args:
+        # Estos deben ser ARGs porque Next.js standalone los bakea en build.
+        API_BASE_URL: http://api:8000
+        NEXT_PUBLIC_API_URL: https://api.${DOMAIN}
     env_file:
       - ../.env
     environment:
       - APP_ENV=production
+      # API_BASE_URL apunta a la red interna Docker (no sale por Traefik).
+      # Este es el endpoint que usa el rewrite SSR de Next.js para proxear /api/*.
+      - API_BASE_URL=http://api:8000
       - NEXT_PUBLIC_API_URL=https://api.${DOMAIN}
       - NEXTAUTH_URL=https://admin.${DOMAIN}
     depends_on:

@@ -250,6 +250,18 @@ async def create_video(
     return ok(_to_dict(item), message="Video creado")
 
 
+@router.get("/{item_id:int}")
+async def get_media_item(
+    item_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    item = db.query(MediaItem).filter(MediaItem.id == item_id).first()
+    if not item:
+        raise HTTPException(404, "Elemento no encontrado")
+    return ok(_to_dict(item))
+
+
 @router.put("/{item_id}")
 async def update_media(
     item_id: int,

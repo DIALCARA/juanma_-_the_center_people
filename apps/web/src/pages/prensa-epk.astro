@@ -19,11 +19,17 @@ const bio = epkData?.bio ?? {};
 const quickFacts = epkData?.quick_facts ?? [];
 const pressQuotes = epkData?.press_quotes ?? [];
 const downloads = epkData?.downloads ?? [];
+
+const breadcrumbs = [
+  { name: "Inicio", url: "/" },
+  { name: "Prensa / EPK", url: "/prensa-epk" },
+];
 ---
 
 <BaseLayout
   title={section.title || "Prensa / EPK"}
   description="Kit de prensa, bio oficial, fotos y rider técnico de Juanma & The Center People"
+  breadcrumbs={breadcrumbs}
 >
   {!section.isEnabled && (
     <SectionUnavailable title={section.title || "Prensa / EPK"} message={section.message} />
@@ -75,7 +81,7 @@ const downloads = epkData?.downloads ?? [];
     <section class="py-12 px-4 reveal" aria-label="Datos rápidos">
       <div class="max-w-4xl mx-auto">
         <div class="flex items-center gap-4 mb-8">
-          <h2 class="section-title text-xl">En números</h2>
+          <h2 class="section-title text-xl">Ficha técnica</h2>
           <div class="section-divider flex-1"></div>
         </div>
         <dl class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

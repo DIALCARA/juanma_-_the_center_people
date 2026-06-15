@@ -120,6 +120,9 @@ def _seed_media_types(db) -> None:
         MediaType(name="Reel", slug="reel"),
     ]
     db.add_all(types)
+    # flush para que _seed_media_categories pueda consultar los tipos por slug.
+    # La session usa autoflush=False, sin esto los tipos no son visibles aún.
+    db.flush()
     print(f"  → {len(types)} tipos de media creados.")
 
 

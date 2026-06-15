@@ -5,16 +5,14 @@ import SectionUnavailable from "../components/ui/SectionUnavailable.astro";
 import { getMedia, getMediaCategories, getSectionInfo } from "../lib/api";
 
 const section = await getSectionInfo("reels");
-
-const page = Number(Astro.url.searchParams.get("page") ?? "1");
-const category = Astro.url.searchParams.get("categoria") ?? "";
+const initialCategory = Astro.url.searchParams.get("categoria") ?? "all";
 
 let mediaData: any = null;
 let categoriesWithContent: Array<{ slug: string; name: string; count: number }> = [];
 if (section.isEnabled) {
   try {
     const [media, cats] = await Promise.all([
-      getMedia({ type: "reel", category, page, page_size: 12 }),
+      getMedia({ type: "reel", page: 1, page_size: 60 }),
       getMediaCategories("reel"),
     ]);
     mediaData = media.data;
@@ -24,138 +22,1152 @@ if (section.isEnabled) {
 
 const items = mediaData?.items ?? [];
 const total = mediaData?.total ?? 0;
-const totalPages = Math.ceil(total / 12);
 
-function extractYoutubeId(url: string): string | null {
-  if (!url) return null;
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
-  return match?.[1] ?? null;
-}
+const reelsData = items.map((item: any) => {
+  const title = item.title || item.alt_text || "Reel";
+  return {
+    id: item.id,
+    title,
+    category: item.category_slug || "sin-categoria",
+    categoryName: item.category_name || "Sin categoría",
+    poster: item.thumbnail_url || "",
+    sourceUrl: item.source_url || "",
+    fileUrl: item.file_url || "",
+    sourceType: item.source_type || "",
+  };
+});
 ---
 
-<BaseLayout title={section.title || "Reels"} description="Reels y contenido corto de Juanma & The Center People">
+<BaseLayout
+  title={section.title || "Reels"}
+  description="Reels y contenido corto de Juanma & The Center People"
+  breadcrumbs={[{ name: "Inicio", url: "/" }, { name: "Reels", url: "/reels" }]}
+>
   {!section.isEnabled && (
     <SectionUnavailable title={section.title || "Reels"} message={section.message} />
   )}
-  {section.isEnabled && (
-    <Fragment>
-  <!-- CABECERA -->
-  <section class="py-20 px-4 text-center" aria-label="Reels">
-    <div class="max-w-3xl mx-auto">
-      <p class="font-heading text-red-band text-xs uppercase tracking-widest mb-3">Contenido corto</p>
-      <h1 class="font-heading text-5xl md:text-6xl text-bone uppercase tracking-widest mb-6">
-        Reels
-      </h1>
-      {total > 0 && (
-        <p class="text-bone-muted font-light">{total} reels</p>
-      )}
-    </div>
-  </section>
 
-  <!-- FILTROS POR CATEGORÍA -->
-  {categoriesWithContent.length > 0 && (
-    <nav class="px-4 mb-2" aria-label="Filtrar reels por categoría">
-      <ul class="max-w-5xl mx-auto flex flex-wrap justify-center gap-2" role="list">
-        <li>
-          <a
-            href="/reels"
-            class:list={[
-              "inline-block px-4 py-1.5 text-xs font-heading uppercase tracking-wider border transition-colors",
-              category === ""
-                ? "border-red-band text-red-band"
-                : "border-urban-800 text-bone-muted hover:text-bone hover:border-urban-600",
-            ]}
-            aria-current={category === "" ? "page" : undefined}
-          >
-            Todos
-          </a>
-        </li>
-        {categoriesWithContent.map((cat) => (
-          <li>
-            <a
-              href={`/reels?categoria=${cat.slug}`}
-              class:list={[
-                "inline-block px-4 py-1.5 text-xs font-heading uppercase tracking-wider border transition-colors",
-                category === cat.slug
-                  ? "border-red-band text-red-band"
-                  : "border-urban-800 text-bone-muted hover:text-bone hover:border-urban-600",
-              ]}
-              aria-current={category === cat.slug ? "page" : undefined}
-            >
-              {cat.name} <span class="text-urban-600">({cat.count})</span>
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
+  {section.isEnabled && reelsData.length === 0 && (
+    <section class="pt-28 px-4">
+      <EmptyState message="Los reels se publicaran proximamente." />
+    </section>
   )}
 
-  <!-- GRID DE REELS -->
-  <section class="py-8 px-4 reveal" aria-label="Galería de reels">
-    <div class="max-w-5xl mx-auto">
-      {items.length > 0 ? (
-        <>
-          <!-- Reels en formato vertical (9:16) -->
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {items.map((item: any) => {
-              const youtubeId = extractYoutubeId(item.source_url || "");
-              return (
-                <article class="border border-urban-800 overflow-hidden hover:border-urban-600 transition-colors group">
-                  {item.thumbnail_url ? (
-                    <div class="relative aspect-[9/16] bg-urban-900">
-                      <img
-                        src={item.thumbnail_url}
-                        alt={item.alt_text || item.title || "Reel"}
-                        loading="lazy"
-                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      {youtubeId && (
-                        <a
-                          href={item.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
-                          aria-label={`Ver reel: ${item.title || "Reel"}`}
-                          data-umami-event="click_reel"
-                        >
-                          <span class="w-12 h-12 rounded-full bg-red-band flex items-center justify-center text-bone text-xl">▶</span>
-                        </a>
-                      )}
-                    </div>
-                  ) : (
-                    <div class="aspect-[9/16] bg-urban-900 flex items-center justify-center">
-                      <span class="text-urban-600 text-3xl">▶</span>
-                    </div>
-                  )}
-                  {item.title && (
-                    <div class="p-2">
-                      <p class="font-heading text-bone uppercase text-xs truncate">{item.title}</p>
-                    </div>
-                  )}
-                </article>
-              );
-            })}
-          </div>
+  {section.isEnabled && reelsData.length > 0 && (
+    <section class="reels-page" aria-label="Coverflow de reels">
+      <nav class="filters" id="reels-filters" aria-label="Filtrar reels por categoria">
+        <button class="chip" data-cat="all" aria-pressed={initialCategory === "all" ? "true" : "false"}>
+          todos
+        </button>
+        {categoriesWithContent.map((cat) => (
+          <button
+            class="chip"
+            data-cat={cat.slug}
+            aria-pressed={initialCategory === cat.slug ? "true" : "false"}
+          >
+            {cat.name.toLowerCase()} <small>({cat.count})</small>
+          </button>
+        ))}
+      </nav>
 
-          {totalPages > 1 && (
-            <nav class="flex justify-center gap-4 mt-12" aria-label="Paginación">
-              {page > 1 && (
-                <a href={`/reels?page=${page - 1}${category ? `&categoria=${category}` : ""}`} class="btn-ghost text-sm">← Anterior</a>
-              )}
-              <span class="text-bone-muted text-sm font-heading uppercase tracking-wider self-center">
-                {page} / {totalPages}
-              </span>
-              {page < totalPages && (
-                <a href={`/reels?page=${page + 1}${category ? `&categoria=${category}` : ""}`} class="btn-ghost text-sm">Siguiente →</a>
-              )}
-            </nav>
-          )}
-        </>
-      ) : (
-        <EmptyState message="Los reels se publicarán próximamente." />
-      )}
-    </div>
-  </section>
-    </Fragment>
+      <div class="stage" id="reels-stage">
+        <div class="deck" id="reels-deck"></div>
+      </div>
+
+      <div class="controls">
+        <button class="arrow" id="reels-prev" type="button" aria-label="Reel anterior">&lsaquo;</button>
+        <div class="dots" id="reels-dots" role="tablist" aria-label="Reels disponibles"></div>
+        <button class="arrow" id="reels-next" type="button" aria-label="Reel siguiente">&rsaquo;</button>
+      </div>
+      <div class="idxnum" id="reels-idxnum"></div>
+    </section>
   )}
 </BaseLayout>
+
+<style is:global>
+  @import url("https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap");
+
+  .reels-page {
+    --reels-bg: #070707;
+    --reels-bg2: #111;
+    --reels-ink: #f3f1ec;
+    --reels-muted: #7c7872;
+    --reels-red: #e8402a;
+    --reels-red-soft: #ff5a42;
+    --reels-line: rgba(243, 241, 236, 0.1);
+    --reels-display: "Anton", "Oswald", sans-serif;
+    --reels-mono: "Space Mono", monospace;
+    --reels-body: "Archivo", "Inter", sans-serif;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 64px);
+    overflow-x: hidden;
+    background:
+      radial-gradient(90vw 70vh at 50% -10%, rgba(232, 64, 42, 0.13), transparent 55%),
+      var(--reels-bg);
+    color: var(--reels-ink);
+    font-family: var(--reels-body);
+  }
+
+  .reels-page::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .reels-page > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .reels-page .filters {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 30px 0 8px;
+  }
+
+  .reels-page .chip {
+    padding: 9px 18px;
+    border: 1px solid var(--reels-line);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--reels-muted);
+    font-family: var(--reels-mono);
+    font-size: 0.74rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.3s, border-color 0.3s, background 0.3s;
+  }
+
+  .reels-page .chip:hover {
+    border-color: var(--reels-ink);
+    color: var(--reels-ink);
+  }
+
+  .reels-page .chip.active,
+  .reels-page .chip[aria-pressed="true"] {
+    background: var(--reels-red);
+    border-color: var(--reels-red);
+    color: #070707;
+    font-weight: 700;
+  }
+
+  .reels-page .chip small {
+    font-weight: 400;
+    opacity: 0.7;
+  }
+
+  .reels-page .stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 1800px;
+    min-height: 620px;
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+
+  .reels-page .deck {
+    position: relative;
+    width: 340px;
+    height: 560px;
+    transform-style: preserve-3d;
+  }
+
+  .reel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 340px;
+    height: 560px;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    transition: transform 0.65s cubic-bezier(0.16, 0.84, 0.3, 1), opacity 0.55s, filter 0.55s;
+    will-change: transform, opacity;
+  }
+
+  .reel .frame {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: 18px;
+    outline: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--reels-bg2);
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+
+  .reel .frame .media {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .reel .frame .media.no-poster {
+    background:
+      radial-gradient(120% 80% at 50% 0%, rgba(232, 64, 42, 0.5), transparent 60%),
+      linear-gradient(180deg, #1a1a1a, #050505);
+  }
+
+  .reel .frame img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.05);
+    filter: brightness(0.78) contrast(1.05);
+    transition: filter 0.6s;
+  }
+
+  .reel.center .frame img {
+    animation: reels-ken 14s ease-in-out infinite alternate;
+    filter: brightness(0.96) contrast(1.06);
+  }
+
+  @keyframes reels-ken {
+    from { transform: scale(1.05) translate(0, 0); }
+    to { transform: scale(1.18) translate(-2%, -3%); }
+  }
+
+  .reel .veil {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: 18px;
+    background: linear-gradient(to top,
+      rgba(7, 7, 7, 0.92) 4%,
+      rgba(7, 7, 7, 0.2) 34%,
+      transparent 52%,
+      rgba(7, 7, 7, 0.35) 100%);
+  }
+
+  .reel .prog {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    z-index: 5;
+    height: 3px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.22);
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+
+  .reel.center .prog {
+    opacity: 1;
+  }
+
+  .reel .prog i {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--reels-ink);
+  }
+
+  .reel .head {
+    position: absolute;
+    top: 26px;
+    left: 14px;
+    right: 14px;
+    z-index: 5;
+    display: flex;
+    gap: 9px;
+    align-items: center;
+  }
+
+  .reel .head .av {
+    flex-shrink: 0;
+    display: flex;
+    width: 30px;
+    height: 30px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--reels-red), #b51f10);
+    color: #fff;
+    font-family: var(--reels-display);
+    font-size: 0.8rem;
+  }
+
+  .reel .head .who {
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+
+  .reel .head .who span {
+    display: block;
+    margin-top: 1px;
+    color: var(--reels-muted);
+    font-family: var(--reels-mono);
+    font-size: 0.58rem;
+    font-weight: 400;
+  }
+
+  .reel .live {
+    margin-left: auto;
+    padding: 3px 6px;
+    border: 1px solid var(--reels-red);
+    border-radius: 3px;
+    color: var(--reels-red-soft);
+    font-family: var(--reels-mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.14em;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+
+  .reel.center .live {
+    opacity: 1;
+  }
+
+  .reel .wm {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 3;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    opacity: 0.9;
+    mix-blend-mode: overlay;
+  }
+
+  .reel .wm b {
+    display: block;
+    line-height: 0.9;
+    font-family: var(--reels-display);
+    font-size: 1.5rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .reel .wm small {
+    color: #fff;
+    font-family: var(--reels-mono);
+    font-size: 0.5rem;
+    letter-spacing: 0.3em;
+  }
+
+  /* Boton play: CTA en el reel activo para abrir el visor in-page */
+  .reel .playbtn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 4;
+    display: flex;
+    width: 64px;
+    height: 64px;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
+    border-radius: 50%;
+    background: rgba(7, 7, 7, 0.45);
+    backdrop-filter: blur(4px);
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s, transform 0.3s;
+  }
+
+  .reel .playbtn::after {
+    content: "";
+    margin-left: 4px;
+    border-left: 18px solid #fff;
+    border-top: 12px solid transparent;
+    border-bottom: 12px solid transparent;
+  }
+
+  .reel.center .playbtn {
+    opacity: 1;
+  }
+
+  .reel.center:hover .playbtn {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+
+  .reel .cap {
+    position: absolute;
+    left: 16px;
+    right: 64px;
+    bottom: 18px;
+    z-index: 5;
+  }
+
+  .reel .cap .t {
+    font-family: var(--reels-display);
+    font-size: 1.18rem;
+    line-height: 1.02;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+  }
+
+  .reel .cap .audio {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 4px 9px;
+    max-width: 100%;
+    border: 1px solid var(--reels-line);
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--reels-ink);
+    font-family: var(--reels-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+  }
+
+  .reel .cap .audio .note {
+    display: inline-block;
+    animation: reels-spin 3s linear infinite;
+  }
+
+  @keyframes reels-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .reel .rail {
+    position: absolute;
+    right: 10px;
+    bottom: 20px;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(10px);
+    transition: opacity 0.5s 0.1s, transform 0.5s 0.1s;
+  }
+
+  .reel.center .rail {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .reel .act {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: center;
+    border: 0;
+    background: none;
+    color: var(--reels-ink);
+    cursor: pointer;
+    font: inherit;
+  }
+
+  .reel .act .ic {
+    display: flex;
+    width: 42px;
+    height: 42px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--reels-line);
+    border-radius: 50%;
+    background: rgba(7, 7, 7, 0.45);
+    font-size: 1.2rem;
+    backdrop-filter: blur(6px);
+    transition: transform 0.25s, background 0.25s;
+  }
+
+  .reel .act:hover .ic {
+    background: rgba(7, 7, 7, 0.7);
+    transform: scale(1.12);
+  }
+
+  .reel .act .n {
+    color: var(--reels-ink);
+    font-family: var(--reels-mono);
+    font-size: 0.58rem;
+  }
+
+  .reel .act.liked .ic {
+    background: var(--reels-red);
+    border-color: var(--reels-red);
+  }
+
+  .reel .act.liked .heart {
+    color: #fff;
+    transform: scale(1.1);
+  }
+
+  .reel .heart {
+    transition: transform 0.25s;
+  }
+
+  .reel .act.ig .ic {
+    background: linear-gradient(135deg, #f9ce34, #ee2a7b 45%, #6228d7);
+  }
+
+  .reel .act.yt .ic {
+    background: #ff0000;
+  }
+
+  .reel .act.tt .ic {
+    background: linear-gradient(135deg, #25f4ee, #fe2c55);
+  }
+
+  .reel .floatheart {
+    position: absolute;
+    right: 24px;
+    bottom: 70px;
+    z-index: 7;
+    color: var(--reels-red-soft);
+    font-size: 1.2rem;
+    pointer-events: none;
+  }
+
+  @keyframes reels-floatup {
+    0% { opacity: 0; transform: translateY(0) scale(0.5); }
+    15% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-150px) scale(1.3) rotate(var(--r)); }
+  }
+
+  .reels-page .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 6px 0 12px;
+  }
+
+  .reels-page .arrow {
+    display: flex;
+    width: 46px;
+    height: 46px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--reels-line);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--reels-ink);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background 0.3s, border-color 0.3s, color 0.3s;
+  }
+
+  .reels-page .arrow:hover {
+    background: var(--reels-red);
+    border-color: var(--reels-red);
+    color: #070707;
+  }
+
+  .reels-page .dots {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 60vw;
+  }
+
+  .reels-page .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.22);
+    cursor: pointer;
+    transition: background 0.3s, width 0.3s;
+  }
+
+  .reels-page .dot.on {
+    width: 26px;
+    border-radius: 100px;
+    background: var(--reels-red);
+  }
+
+  .reels-page .idxnum {
+    margin: -2px 0 18px;
+    text-align: center;
+    color: var(--reels-muted);
+    font-family: var(--reels-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+  }
+
+  /* —— Embed inline: el iframe / video se monta solo en la tarjeta activa —— */
+  .reel .embed-mount {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    display: none;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #000;
+  }
+
+  .reel.playing .embed-mount {
+    display: block;
+  }
+
+  .reel .embed-mount iframe,
+  .reel .embed-mount video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #000;
+  }
+
+  .reel .embed-mount video {
+    object-fit: cover;
+  }
+
+  /* Mientras el embed está reproduciéndose, escondemos los overlays
+     decorativos para que no obstruyan el video. La barra de progreso
+     y el rail de acciones siguen visibles. */
+  .reel.playing .veil,
+  .reel.playing .wm,
+  .reel.playing .head,
+  .reel.playing .cap,
+  .reel.playing .playbtn,
+  .reel.playing .frame > .media {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .reel.playing .rail {
+    z-index: 8;
+  }
+
+  @media (max-width: 560px) {
+    .reels-page .deck,
+    .reel {
+      width: 280px;
+      height: 480px;
+    }
+    .reels-page .stage {
+      min-height: 540px;
+    }
+  }
+</style>
+
+<script define:vars={{ reelsData, initialCategory }}>
+  const deck = document.getElementById("reels-deck");
+  const stage = document.getElementById("reels-stage");
+  const filters = document.getElementById("reels-filters");
+  const dotsEl = document.getElementById("reels-dots");
+  const idxnumEl = document.getElementById("reels-idxnum");
+  const countEl = document.getElementById("reels-count");
+  const prevBtn = document.getElementById("reels-prev");
+  const nextBtn = document.getElementById("reels-next");
+
+  if (deck && stage && reelsData.length > 0) {
+    const AUTO_MS = 7000;
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function detectPlatform(url) {
+      if (!url) return null;
+      if (/youtu\.be|youtube\.com/.test(url)) return "youtube";
+      if (/instagram\.com/.test(url)) return "instagram";
+      if (/tiktok\.com/.test(url)) return "tiktok";
+      return "external";
+    }
+
+    function platformLabel(p) {
+      if (p === "youtube") return "YouTube";
+      if (p === "instagram") return "Instagram";
+      if (p === "tiktok") return "TikTok";
+      if (p === "external") return "Abrir";
+      return "";
+    }
+
+    function platformIcon(p) {
+      if (p === "youtube") return "&#9654;";
+      if (p === "instagram") return "&#9678;";
+      if (p === "tiktok") return "&#9835;";
+      return "&#8599;";
+    }
+
+    function platformClass(p) {
+      if (p === "instagram") return "ig";
+      if (p === "youtube") return "yt";
+      if (p === "tiktok") return "tt";
+      return "";
+    }
+
+    function liveChipLabel(p) {
+      if (p === "youtube") return "&#9654; short";
+      if (p === "tiktok") return "&#9835; tiktok";
+      return "&bull; reel";
+    }
+
+    function youtubeId(url) {
+      if (!url) return null;
+      const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/))([A-Za-z0-9_-]{11})/);
+      return m ? m[1] : null;
+    }
+
+    function tiktokId(url) {
+      if (!url) return null;
+      const m = url.match(/tiktok\.com\/.+\/video\/(\d+)/);
+      return m ? m[1] : null;
+    }
+
+    function isInstagramEmbeddable(url) {
+      return !!url && /instagram\.com\/(reel|reels|p)\//.test(url);
+    }
+
+    const cards = reelsData.map((reel, index) => {
+      const el = document.createElement("div");
+      el.className = "reel";
+      el.dataset.idx = String(index);
+      const platform = detectPlatform(reel.sourceUrl);
+      const platLabel = platformLabel(platform);
+      const platIcon = platformIcon(platform);
+      const platCls = platformClass(platform);
+      const posterHtml = reel.poster
+        ? `<div class="media"><img src="${escapeHtml(reel.poster)}" alt="${escapeHtml(reel.title)}" draggable="false" loading="lazy"></div>`
+        : `<div class="media no-poster" aria-hidden="true"></div>`;
+      const sourceBtn = reel.sourceUrl
+        ? `<button class="act open ${platCls}" type="button" data-umami-event="view_reel_${platform || "external"}">
+             <span class="ic">${platIcon}</span>
+             <span class="n">${escapeHtml(platLabel)}</span>
+           </button>`
+        : "";
+      el.innerHTML = `
+        <div class="frame">
+          ${posterHtml}
+          <div class="embed-mount" aria-label="${escapeHtml(reel.title)}"></div>
+          <div class="veil"></div>
+          <div class="prog"><i></i></div>
+          <div class="head">
+            <div class="av">J</div>
+            <div class="who">juanma_centerpeople<span>${escapeHtml(reel.categoryName)}</span></div>
+            <span class="live">${liveChipLabel(platform)}</span>
+          </div>
+          <div class="wm"><b>Juanma</b><small>& the center people</small></div>
+          <div class="playbtn" aria-hidden="true"></div>
+          <div class="cap">
+            <div class="t">${escapeHtml(reel.title)}</div>
+          </div>
+          <div class="rail">
+            <button class="act like" type="button" aria-label="Me gusta">
+              <span class="ic"><span class="heart">&hearts;</span></span>
+              <span class="n">me gusta</span>
+            </button>
+            ${sourceBtn}
+            <button class="act share" type="button" aria-label="Compartir" data-umami-event="share_reel">
+              <span class="ic">&#8599;</span>
+              <span class="n">compartir</span>
+            </button>
+          </div>
+        </div>`;
+      el._data = reel;
+      el._liked = false;
+      deck.appendChild(el);
+      return el;
+    });
+
+    let order = [];
+    let center = 0;
+    let autoT = null;
+    let progStart = 0;
+    // Pausa del timer fallback: durante el arrastre o si la seccion no esta en
+    // viewport. Cuando hay embed montado el step() ya no avanza (lo maneja el
+    // ended event del propio embed para video/YT, o el usuario para IG/TT).
+    const pause = { hold: false, outOfView: false };
+    function isPaused() {
+      return pause.hold || pause.outOfView;
+    }
+
+    function layout() {
+      const N = order.length;
+      cards.forEach((card) => {
+        card.style.opacity = "0";
+        card.style.pointerEvents = "none";
+        card.classList.remove("center");
+      });
+      if (N === 0) {
+        unmountAt(mountedCardIdx);
+        mountedCardIdx = -1;
+        updateUI();
+        cancelAnimationFrame(autoT);
+        return;
+      }
+      order.forEach((cardIdx, p) => {
+        const card = cards[cardIdx];
+        let off = p - center;
+        if (off > N / 2) off -= N;
+        if (off < -N / 2) off += N;
+        const a = Math.abs(off);
+        if (a > 2) return;
+        const x = off * 150;
+        const z = -a * 240;
+        const ry = off * -32;
+        const sc = off === 0 ? 1 : 0.82 - a * 0.06;
+        card.style.transform = `translateX(${x}px) translateZ(${z}px) rotateY(${ry}deg) scale(${sc})`;
+        card.style.opacity = off === 0 ? "1" : a === 1 ? "0.62" : "0.28";
+        card.style.zIndex = String(50 - a);
+        card.style.pointerEvents = "auto";
+        card.style.filter = off === 0 ? "none" : "brightness(.6) saturate(.7)";
+        if (off === 0) card.classList.add("center");
+      });
+      mountCenterEmbed();
+      updateUI();
+      restartAuto();
+    }
+
+    function go(direction) {
+      if (order.length === 0) return;
+      center = (center + direction + order.length) % order.length;
+      layout();
+    }
+
+    function setCenter(p) {
+      if (order.length === 0) return;
+      center = ((p % order.length) + order.length) % order.length;
+      layout();
+    }
+
+    nextBtn?.addEventListener("click", () => go(1));
+    prevBtn?.addEventListener("click", () => go(-1));
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight") go(1);
+      if (event.key === "ArrowLeft") go(-1);
+    });
+
+    let dragMoved = false;
+
+    deck.addEventListener("click", (event) => {
+      if (dragMoved) return;
+      const card = event.target.closest(".reel");
+      if (!card) return;
+      const idx = Number(card.dataset.idx);
+      const p = order.indexOf(idx);
+      if (p === -1) return;
+      if (p !== center) {
+        setCenter(p);
+        return;
+      }
+      if (event.target.closest(".like")) {
+        toggleLike(card);
+        return;
+      }
+      if (event.target.closest(".share")) {
+        shareReel(card);
+        return;
+      }
+      if (event.target.closest(".open")) {
+        if (card._data.sourceUrl) window.open(card._data.sourceUrl, "_blank", "noopener");
+        return;
+      }
+      // Clic en el frame del reel central: el iframe/video del embed maneja su propio play.
+      // Si la tarjeta aun no monto el embed (ej. embed-mount vacio), forzamos el mount.
+      if (!card.classList.contains("playing")) mountCenterEmbed();
+    });
+
+    function toggleLike(card) {
+      const btn = card.querySelector(".like");
+      if (!btn) return;
+      card._liked = !card._liked;
+      btn.classList.toggle("liked", card._liked);
+      if (card._liked) burst(card);
+    }
+
+    function burst(card) {
+      const frame = card.querySelector(".frame");
+      if (!frame) return;
+      for (let i = 0; i < 6; i++) {
+        const h = document.createElement("div");
+        h.className = "floatheart";
+        h.textContent = "♥";
+        h.style.right = `${18 + Math.random() * 30}px`;
+        h.style.setProperty("--r", `${Math.random() * 60 - 30}deg`);
+        h.style.animation = `reels-floatup ${1 + Math.random() * 0.7}s ease-out forwards`;
+        h.style.animationDelay = `${i * 0.05}s`;
+        frame.appendChild(h);
+        setTimeout(() => h.remove(), 1900);
+      }
+    }
+
+    function shareReel(card) {
+      const url = card._data.sourceUrl || window.location.href;
+      const title = card._data.title;
+      if (navigator.share) {
+        navigator.share({ title, url }).catch(() => {});
+      } else {
+        navigator.clipboard?.writeText(url).catch(() => {});
+      }
+    }
+
+    let down = false;
+    let startX = 0;
+    stage.addEventListener("pointerdown", (event) => {
+      down = true;
+      dragMoved = false;
+      startX = event.clientX;
+      pause.hold = true;
+      stage.setPointerCapture(event.pointerId);
+    });
+    stage.addEventListener("pointermove", (event) => {
+      if (!down) return;
+      if (Math.abs(event.clientX - startX) > 6) dragMoved = true;
+    });
+    stage.addEventListener("pointerup", (event) => {
+      if (!down) return;
+      down = false;
+      pause.hold = false;
+      const dx = event.clientX - startX;
+      if (dx < -50) go(1);
+      else if (dx > 50) go(-1);
+      else restartAuto();
+    });
+
+    let wheelLock = false;
+    stage.addEventListener("wheel", (event) => {
+      if (Math.abs(event.deltaX) < Math.abs(event.deltaY)) return;
+      event.preventDefault();
+      if (wheelLock) return;
+      wheelLock = true;
+      go(event.deltaX > 0 ? 1 : -1);
+      setTimeout(() => { wheelLock = false; }, 420);
+    }, { passive: false });
+
+    deck.addEventListener("pointerdown", (event) => {
+      if (event.target.closest(".reel.center")) pause.hold = true;
+    });
+    window.addEventListener("pointerup", () => { pause.hold = false; });
+
+    function restartAuto() {
+      cancelAnimationFrame(autoT);
+      progStart = performance.now();
+      const bar = cards[order[center]]?.querySelector(".prog i");
+      if (bar) bar.style.width = "0%";
+      step();
+    }
+
+    function step() {
+      autoT = requestAnimationFrame(step);
+      const card = cards[order[center]];
+      if (!card) return;
+      // Si la tarjeta tiene embed inline montado, dejamos que el propio embed
+      // controle el avance: video.onended / YT IFrame API para los que tienen
+      // evento; manual (swipe/flecha) para IG/TikTok que no lo exponen.
+      if (card.classList.contains("playing")) return;
+      const bar = card.querySelector(".prog i");
+      if (isPaused()) {
+        if (bar) progStart = performance.now() - (parseFloat(bar.style.width || "0") / 100) * AUTO_MS;
+        return;
+      }
+      const elapsed = (performance.now() - progStart) / AUTO_MS;
+      if (bar) bar.style.width = `${Math.min(elapsed * 100, 100)}%`;
+      if (elapsed >= 1) go(1);
+    }
+
+    // ---- Embed inline en la tarjeta activa ----
+    // El centrado monta el embed real en el frame, sin modal. Cuando el reel
+    // cambia, se desmonta el anterior (el setInnerHTML mata el iframe -> corta
+    // audio/video). Para <video> y YouTube tenemos eventos de fin que llaman a
+    // go(1) (loop verdadero). Para IG/TikTok no hay evento publico -> queda el
+    // timer fallback (`AUTO_MS`) si el usuario habilito autoplay.
+
+    function playerKind(reel) {
+      if (reel.fileUrl && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(reel.fileUrl)) return "video";
+      if (reel.sourceType === "upload" && reel.fileUrl) return "video";
+      const p = detectPlatform(reel.sourceUrl);
+      if (p === "youtube" && youtubeId(reel.sourceUrl)) return "youtube";
+      if (p === "tiktok" && tiktokId(reel.sourceUrl)) return "tiktok";
+      if (p === "instagram" && isInstagramEmbeddable(reel.sourceUrl)) return "instagram";
+      return null;
+    }
+
+    function buildInlinePlayer(reel) {
+      const kind = playerKind(reel);
+      if (kind === "video") {
+        const v = document.createElement("video");
+        v.src = reel.fileUrl;
+        if (reel.poster) v.poster = reel.poster;
+        v.autoplay = true;
+        v.muted = true;
+        v.playsInline = true;
+        v.controls = true;
+        v.preload = "metadata";
+        // Fin de reproduccion -> siguiente reel (loop exacto)
+        v.addEventListener("ended", () => go(1));
+        return { el: v, kind, hasEndedEvent: true };
+      }
+      if (kind === "youtube") {
+        const id = youtubeId(reel.sourceUrl);
+        const f = document.createElement("iframe");
+        f.src = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1`;
+        f.allow = "autoplay; encrypted-media; picture-in-picture; web-share";
+        f.allowFullscreen = true;
+        f.title = reel.title;
+        return { el: f, kind, hasEndedEvent: true, ytId: id };
+      }
+      if (kind === "tiktok") {
+        const id = tiktokId(reel.sourceUrl);
+        const f = document.createElement("iframe");
+        f.src = `https://www.tiktok.com/embed/v2/${id}?autoplay=1`;
+        f.allow = "autoplay; encrypted-media; picture-in-picture; web-share";
+        f.title = reel.title;
+        return { el: f, kind, hasEndedEvent: false };
+      }
+      if (kind === "instagram") {
+        const m = reel.sourceUrl.match(/instagram\.com\/(?:reel|reels|p)\/([A-Za-z0-9_-]+)/);
+        const id = m ? m[1] : null;
+        const f = document.createElement("iframe");
+        f.src = `https://www.instagram.com/reel/${id}/embed/`;
+        f.scrolling = "no";
+        f.allow = "autoplay; encrypted-media; picture-in-picture";
+        f.title = reel.title;
+        return { el: f, kind, hasEndedEvent: false };
+      }
+      return null;
+    }
+
+    // YouTube IFrame API: una vez cargada, instanciamos YT.Player sobre el
+    // iframe ya montado y escuchamos onStateChange === 0 (ended) -> go(1).
+    let ytApiReady = false;
+    let ytApiQueue = [];
+    function loadYouTubeApi(cb) {
+      if (ytApiReady) return cb();
+      ytApiQueue.push(cb);
+      if (document.getElementById("reels-yt-api")) return;
+      const s = document.createElement("script");
+      s.id = "reels-yt-api";
+      s.src = "https://www.youtube.com/iframe_api";
+      document.body.appendChild(s);
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = function () {
+        ytApiReady = true;
+        if (typeof prev === "function") prev();
+        ytApiQueue.forEach((fn) => { try { fn(); } catch (e) {} });
+        ytApiQueue = [];
+      };
+    }
+
+    function attachYouTubeEnded(card, iframeEl) {
+      loadYouTubeApi(() => {
+        if (card._ytPlayer || !iframeEl.isConnected) return;
+        try {
+          card._ytPlayer = new YT.Player(iframeEl, {
+            events: {
+              onStateChange: (e) => { if (e.data === 0) go(1); },
+            },
+          });
+        } catch (e) {}
+      });
+    }
+
+    let mountedCardIdx = -1;
+    function unmountAt(idx) {
+      if (idx < 0) return;
+      const card = cards[idx];
+      if (!card) return;
+      const mount = card.querySelector(".embed-mount");
+      if (mount) mount.innerHTML = "";
+      card.classList.remove("playing");
+      if (card._ytPlayer) {
+        try { card._ytPlayer.destroy(); } catch (e) {}
+        card._ytPlayer = null;
+      }
+    }
+
+    function mountCenterEmbed() {
+      if (order.length === 0) {
+        unmountAt(mountedCardIdx);
+        mountedCardIdx = -1;
+        return;
+      }
+      const targetIdx = order[center];
+      if (targetIdx === mountedCardIdx) return;
+      unmountAt(mountedCardIdx);
+      mountedCardIdx = targetIdx;
+
+      const card = cards[targetIdx];
+      const mount = card.querySelector(".embed-mount");
+      if (!mount) return;
+
+      const built = buildInlinePlayer(card._data);
+      if (!built) return;
+
+      mount.appendChild(built.el);
+      card.classList.add("playing");
+
+      if (built.kind === "youtube" && built.el.tagName === "IFRAME") {
+        attachYouTubeEnded(card, built.el);
+      }
+    }
+
+    // ---- IntersectionObserver: pausa autoplay si el deck no esta visible ----
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver(([entry]) => {
+        pause.outOfView = !(entry.isIntersecting && entry.intersectionRatio > 0.3);
+      }, { threshold: [0, 0.3, 0.6] });
+      io.observe(stage);
+    }
+
+    function setActiveChip(category) {
+      filters?.querySelectorAll(".chip").forEach((chip) => {
+        const active = chip.dataset.cat === category;
+        chip.classList.toggle("active", active);
+        chip.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
+
+    function buildOrder(category) {
+      order = reelsData
+        .map((reel, index) => ({ reel, index }))
+        .filter(({ reel }) => category === "all" || reel.category === category)
+        .map(({ index }) => index);
+      center = 0;
+      setActiveChip(category);
+      const url = new URL(window.location.href);
+      if (category === "all") url.searchParams.delete("categoria");
+      else url.searchParams.set("categoria", category);
+      window.history.replaceState({}, "", url);
+      layout();
+    }
+
+    filters?.addEventListener("click", (event) => {
+      const chip = event.target.closest(".chip");
+      if (!chip) return;
+      buildOrder(chip.dataset.cat || "all");
+    });
+
+    function updateUI() {
+      if (!dotsEl || !idxnumEl) return;
+      dotsEl.innerHTML = "";
+      order.forEach((_, p) => {
+        const dot = document.createElement("div");
+        dot.className = "dot" + (p === center ? " on" : "");
+        dot.setAttribute("role", "tab");
+        dot.addEventListener("click", () => setCenter(p));
+        dotsEl.appendChild(dot);
+      });
+      const N = order.length;
+      idxnumEl.textContent = N === 0
+        ? "sin reels en esta categoria"
+        : `${String(center + 1).padStart(2, "0")} / ${String(N).padStart(2, "0")}`;
+    }
+
+    const validInitial = initialCategory === "all"
+      || reelsData.some((reel) => reel.category === initialCategory);
+    buildOrder(validInitial ? initialCategory : "all");
+  }
+</script>

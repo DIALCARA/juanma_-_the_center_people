@@ -12,9 +12,26 @@ const tipoMap: Record<string, string> = {
   colaboracion: "collaboration",
 };
 const selectedType = tipoMap[tipo] ?? "";
+
+const contactJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ContactPage",
+  name: "Contacto",
+  about: { "@type": "MusicGroup", name: "Juanma & The Center People" },
+};
+
+const breadcrumbs = [
+  { name: "Inicio", url: "/" },
+  { name: "Contacto", url: "/contacto" },
+];
 ---
 
-<BaseLayout title={section.title || "Contacto"} description="Contacto y booking de Juanma & The Center People">
+<BaseLayout
+  title={section.title || "Contacto"}
+  description="Contacto y booking de Juanma & The Center People"
+  jsonLd={contactJsonLd}
+  breadcrumbs={breadcrumbs}
+>
   {!section.isEnabled && (
     <SectionUnavailable title={section.title || "Contacto"} message={section.message} />
   )}

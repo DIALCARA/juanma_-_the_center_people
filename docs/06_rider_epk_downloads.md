@@ -231,7 +231,7 @@ mensaje
 4. Se registra solicitud en CMS.
 5. Admin revisa.
 6. Admin aprueba o rechaza.
-7. Si aprueba, Mailgun envía correo con enlace temporal o adjunto/enlace protegido.
+7. Si aprueba, el sistema envía correo (vía SMTP/Zoho Mail) con enlace temporal o adjunto/enlace protegido.
 
 ## Campos de recurso descargable
 

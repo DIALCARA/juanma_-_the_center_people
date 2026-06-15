@@ -17,19 +17,53 @@ const upcomingEvents = homeData?.upcoming_events ?? [];
 const featuredMedia = homeData?.featured_media ?? [];
 const sections = homeData?.sections ?? {};
 
-// Marquee: arma frases automáticas con lo que hay en la DB (release destacado + próxima fecha).
+// Marquee: arma frases con todo lo disponible de la DB.
+// Cuanto más datos haya, más variado el ticker (sin repeticiones obvias).
 const marqueeItems: string[] = [];
+
+// Helper: formatea fecha como "15 JUN" o "15 JUN 2026" si es de otro año.
+const fmtDate = (iso: string, includeYear = false): string => {
+  const opts: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short" };
+  if (includeYear) opts.year = "numeric";
+  return new Date(iso).toLocaleDateString("es-PE", opts).toUpperCase();
+};
+
+// Helper: ¿la fecha del release es a futuro?
+const isUpcoming = (iso: string | undefined | null): boolean => {
+  if (!iso) return false;
+  return new Date(iso) > new Date();
+};
+
+// 1. Identidad básica (siempre)
+marqueeItems.push((site.band_name ?? "Juanma & The Center People").toUpperCase());
+marqueeItems.push((site.subgenre ?? "Rock alternativo peruano").toUpperCase());
+
+// 2. Release destacado — texto distinto si la fecha es futura
 if (homeData?.featured_release) {
-  marqueeItems.push(`NUEVO ${homeData.featured_release.title.toUpperCase()} — DISPONIBLE EN STREAMING`);
+  const r = homeData.featured_release;
+  if (isUpcoming(r.release_date)) {
+    marqueeItems.push(`PRÓXIMAMENTE — ${r.title.toUpperCase()} — ${fmtDate(r.release_date)}`);
+  } else {
+    marqueeItems.push(`NUEVO — ${r.title.toUpperCase()} — YA EN STREAMING`);
+  }
 }
+
+// 3. Próximos lanzamientos (no destacados, con fecha futura)
+const upcomingReleases = homeData?.upcoming_releases ?? [];
+for (const r of upcomingReleases) {
+  marqueeItems.push(`PRÓXIMAMENTE — ${r.title.toUpperCase()} — ${fmtDate(r.release_date)}`);
+}
+
+// 4. Próxima fecha de show
 if (upcomingEvents[0]) {
   const ev = upcomingEvents[0];
-  const date = new Date(ev.event_date).toLocaleDateString("es-PE", { day: "2-digit", month: "short" }).toUpperCase();
-  marqueeItems.push(`PRÓXIMA FECHA — ${date} — ${(ev.venue ?? ev.city ?? ev.title).toUpperCase()}`);
+  marqueeItems.push(`PRÓXIMA FECHA — ${fmtDate(ev.event_date)} — ${(ev.venue ?? ev.city ?? ev.title).toUpperCase()}`);
 }
-if (marqueeItems.length === 0) {
-  marqueeItems.push(`${(site.band_name ?? "Juanma & The Center People").toUpperCase()} — ${(site.subgenre ?? "Rock alternativo peruano").toUpperCase()}`);
-}
+
+// 5. Calls to action sociales
+if (site.spotify_url) marqueeItems.push("ESCUCHANOS EN SPOTIFY");
+if (site.instagram_url) marqueeItems.push("SEGUINOS EN INSTAGRAM");
+if (site.youtube_url) marqueeItems.push("MIRANOS EN YOUTUBE");
 
 // Countdown solo si hay un próximo evento futuro.
 const nextShow = upcomingEvents[0];
@@ -43,16 +77,21 @@ const showInHome = (slug: string): boolean => {
 };
 ---
 
-<BaseLayout>
+<BaseLayout hideFooter={true}>
   <!-- HERO -->
+  {/* Altura calculada para dejar el Marquee visible above-the-fold:
+      100vh menos el header fijo (64px) menos el alto del marquee (~50px).
+      En móvil queda más respiratorio gracias a min-h-[520px]. */}
   <section
-    class="relative min-h-[90vh] flex items-center justify-center px-4 text-center overflow-hidden"
+    class="relative min-h-[520px] h-[calc(100vh-7.5rem)] flex items-center justify-center px-4 text-center overflow-hidden"
     aria-label="Presentación de la banda"
   >
     {/*
       Video de fondo (opcional):
       Si existe /hero-bg.mp4 en apps/web/public/, se reproduce en loop sin sonido.
-      En mobile o si el archivo no está, el navegador muestra solo el gradiente de abajo.
+      En mobile o si el archivo no está, el navegador muestra el poster (cover_image
+      del CMS si existe) o fondo negro liso. Nunca mostramos og-default.jpg como poster
+      porque su proporción 1200x630 se ve estirada en el hero vertical.
     */}
     <video
       class="hero-video"
@@ -62,7 +101,7 @@ const showInHome = (slug: string): boolean => {
       playsinline
       preload="metadata"
       aria-hidden="true"
-      poster="/og-default.jpg"
+      poster={site.cover_image_url ?? undefined}
     >
       <source src="/hero-bg.mp4" type="video/mp4" />
       <source src="/hero-bg.webm" type="video/webm" />
@@ -75,12 +114,15 @@ const showInHome = (slug: string): boolean => {
       </p>
       <h1 class="mb-8">
         <span class="sr-only">{site.band_name ?? "Juanma & The Center People"}</span>
+        {/* La imagen del hero se elige desde el CMS (Configuración → Imagen del hero).
+            Si no hay imagen configurada, cae al logo de la banda. */}
         <img
-          src="/logo-light.png"
+          src={site.hero_image_url ?? "/logo-light.png"}
           alt={site.band_name ?? "Juanma & The Center People"}
           width="2560"
           height="1153"
           class="w-full max-w-3xl mx-auto h-auto hero-logo"
+          fetchpriority="high"
         />
       </h1>
       <p class="text-bone-muted text-lg md:text-xl mb-10 font-body font-light leading-relaxed hero-subtitle">

@@ -172,7 +172,14 @@ async def action_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if body.action not in {"approve", "reject"}:
+    action_aliases = {
+        "approve": "approve",
+        "approved": "approve",
+        "reject": "reject",
+        "rejected": "reject",
+    }
+    action = action_aliases.get(body.action)
+    if action is None:
         raise HTTPException(400, "Acción inválida. Usar 'approve' o 'reject'")
 
     dr = db.query(DownloadRequest).filter(DownloadRequest.id == request_id).first()
@@ -183,7 +190,7 @@ async def action_request(
 
     now = datetime.now(timezone.utc)
 
-    if body.action == "approve":
+    if action == "approve":
         token = str(uuid.uuid4())
         expires = now + timedelta(days=dr.asset.expires_in_days)
         dr.status = "approved"

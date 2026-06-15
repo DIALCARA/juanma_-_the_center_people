@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reels — Juanma & the Center People</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070707;
+  --bg2:#111;
+  --ink:#f3f1ec;
+  --muted:#7c7872;
+  --red:#e8402a;
+  --red-soft:#ff5a42;
+  --line:rgba(243,241,236,.1);
+  --display:'Anton',sans-serif;
+  --mono:'Space Mono',monospace;
+  --body:'Archivo',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(90vw 70vh at 50% -10%,rgba(232,64,42,.13),transparent 55%),
+    var(--bg);
+  color:var(--ink);font-family:var(--body);overflow-x:hidden;
+  display:flex;flex-direction:column;min-height:100vh;
+}
+body::after{ /* grano */
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:9998;opacity:.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---- header ---- */
+header{text-align:center;padding:54px 20px 6px;position:relative;z-index:2}
+.kicker{font-family:var(--mono);font-size:.72rem;letter-spacing:.42em;text-transform:uppercase;color:var(--red);margin-bottom:10px}
+h1{font-family:var(--display);font-size:clamp(3.2rem,11vw,7rem);line-height:.85;letter-spacing:.01em;text-transform:uppercase}
+.count{font-family:var(--mono);font-size:.82rem;color:var(--muted);margin-top:14px;letter-spacing:.06em}
+
+/* ---- filtros ---- */
+.filters{display:flex;justify-content:center;gap:8px;margin:26px 0 8px;flex-wrap:wrap;position:relative;z-index:2}
+.chip{font-family:var(--mono);font-size:.74rem;letter-spacing:.05em;text-transform:uppercase;
+  background:transparent;color:var(--muted);border:1px solid var(--line);padding:9px 18px;border-radius:4px;
+  cursor:pointer;transition:color .3s,border-color .3s,background .3s}
+.chip:hover{color:var(--ink);border-color:var(--ink)}
+.chip.active{background:var(--red);color:#070707;border-color:var(--red);font-weight:700}
+.chip small{opacity:.7;font-weight:400}
+
+/* ---- escenario coverflow ---- */
+#stage{flex:1;position:relative;display:flex;align-items:center;justify-content:center;
+  perspective:1800px;min-height:620px;overflow:hidden;z-index:1;touch-action:pan-y}
+#deck{position:relative;width:340px;height:560px;transform-style:preserve-3d}
+
+/* tarjeta reel */
+.reel{position:absolute;top:0;left:0;width:340px;height:560px;
+  transform-style:preserve-3d;cursor:pointer;
+  transition:transform .65s cubic-bezier(.16,.84,.3,1),opacity .55s,filter .55s;
+  will-change:transform,opacity}
+.reel .frame{
+  position:absolute;inset:0;border-radius:18px;overflow:hidden;background:var(--bg2);
+  box-shadow:0 30px 70px rgba(0,0,0,.6),0 2px 8px rgba(0,0,0,.5);
+  outline:1px solid rgba(255,255,255,.06);
+}
+.reel .frame .media{position:absolute;inset:0;overflow:hidden}
+.reel .frame img{width:100%;height:100%;object-fit:cover;display:block;
+  filter:brightness(.78) contrast(1.05);transform:scale(1.05);transition:filter .6s}
+/* ken burns sólo en el activo */
+.reel.center .frame img{animation:ken 14s ease-in-out infinite alternate;filter:brightness(.96) contrast(1.06)}
+@keyframes ken{from{transform:scale(1.05) translate(0,0)}to{transform:scale(1.18) translate(-2%,-3%)}}
+.reel .veil{position:absolute;inset:0;border-radius:18px;pointer-events:none;
+  background:linear-gradient(to top,rgba(7,7,7,.92) 4%,rgba(7,7,7,.2) 34%,transparent 52%,rgba(7,7,7,.35) 100%)}
+
+/* barra de progreso tipo stories */
+.prog{position:absolute;top:12px;left:12px;right:12px;height:3px;border-radius:3px;
+  background:rgba(255,255,255,.22);overflow:hidden;z-index:5;opacity:0;transition:opacity .4s}
+.reel.center .prog{opacity:1}
+.prog i{display:block;height:100%;width:0;background:var(--ink);border-radius:3px}
+
+/* top: identidad */
+.head{position:absolute;top:26px;left:14px;right:14px;display:flex;align-items:center;gap:9px;z-index:5}
+.head .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--red),#b51f10);
+  display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:.8rem;color:#fff;flex-shrink:0}
+.head .who{font-size:.74rem;font-weight:600;line-height:1.1}
+.head .who span{display:block;font-family:var(--mono);font-size:.58rem;color:var(--muted);font-weight:400;margin-top:1px}
+.live{margin-left:auto;font-family:var(--mono);font-size:.55rem;letter-spacing:.14em;color:var(--red-soft);
+  border:1px solid var(--red);border-radius:3px;padding:3px 6px;opacity:0;transition:.4s}
+.reel.center .live{opacity:1}
+
+/* watermark logo */
+.wm{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:3;
+  pointer-events:none;opacity:.9;mix-blend-mode:overlay}
+.wm b{font-family:var(--display);font-size:1.5rem;letter-spacing:.02em;display:block;line-height:.9;text-transform:uppercase}
+.wm small{font-family:var(--mono);font-size:.5rem;letter-spacing:.3em;color:#fff}
+
+/* play hint sobre no-activos */
+.playbtn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:4;
+  width:62px;height:62px;border-radius:50%;background:rgba(7,7,7,.4);backdrop-filter:blur(4px);
+  border:1.5px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;
+  transition:opacity .4s,transform .4s}
+.playbtn::after{content:"";border-left:16px solid #fff;border-top:11px solid transparent;border-bottom:11px solid transparent;margin-left:4px}
+.reel.center .playbtn{opacity:0;transform:translate(-50%,-50%) scale(.6);pointer-events:none}
+
+/* caption inferior */
+.cap{position:absolute;left:16px;right:64px;bottom:18px;z-index:5}
+.cap .t{font-family:var(--display);font-size:1.18rem;line-height:1.02;text-transform:uppercase;letter-spacing:.01em}
+.cap .audio{display:inline-flex;align-items:center;gap:6px;margin-top:10px;
+  font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;color:var(--ink);
+  background:rgba(255,255,255,.08);border:1px solid var(--line);padding:4px 9px;border-radius:100px;max-width:100%}
+.cap .audio .note{animation:spin 3s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* rail de acciones (sólo activo) */
+.rail{position:absolute;right:10px;bottom:20px;z-index:6;display:flex;flex-direction:column;gap:16px;align-items:center;
+  opacity:0;transform:translateX(10px);transition:opacity .5s .1s,transform .5s .1s;pointer-events:none}
+.reel.center .rail{opacity:1;transform:none;pointer-events:auto}
+.act{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:none;color:var(--ink)}
+.act .ic{width:42px;height:42px;border-radius:50%;background:rgba(7,7,7,.45);backdrop-filter:blur(6px);
+  border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:1.2rem;transition:transform .25s,background .25s}
+.act:hover .ic{transform:scale(1.12);background:rgba(7,7,7,.7)}
+.act .n{font-family:var(--mono);font-size:.58rem;color:var(--ink)}
+.act.liked .ic{background:var(--red);border-color:var(--red)}
+.act.liked .heart{color:#fff;transform:scale(1.1)}
+.heart{transition:transform .25s}
+.act.ig .ic{background:linear-gradient(135deg,#f9ce34,#ee2a7b 45%,#6228d7)}
+
+/* corazones flotantes */
+.floatheart{position:absolute;right:24px;bottom:70px;z-index:7;font-size:1.2rem;pointer-events:none;color:var(--red-soft)}
+@keyframes floatup{0%{opacity:0;transform:translateY(0) scale(.5)}15%{opacity:1}100%{opacity:0;transform:translateY(-150px) scale(1.3) rotate(var(--r))}}
+
+/* dots / contador */
+.controls{display:flex;align-items:center;justify-content:center;gap:18px;padding:6px 0 36px;position:relative;z-index:2}
+.arrow{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--ink);
+  font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.3s}
+.arrow:hover{background:var(--red);border-color:var(--red);color:#070707}
+.dots{display:flex;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.22);cursor:pointer;transition:.3s}
+.dot.on{background:var(--red);width:26px;border-radius:100px}
+.idxnum{font-family:var(--mono);font-size:.78rem;color:var(--muted);letter-spacing:.08em;min-width:64px;text-align:center}
+
+.swipehint{text-align:center;font-family:var(--mono);font-size:.62rem;color:var(--muted);letter-spacing:.1em;padding-bottom:24px}
+.swipehint b{color:var(--red-soft);font-weight:400}
+
+@media(max-width:560px){
+  #deck,.reel{width:280px;height:480px}
+  #stage{min-height:540px}
+  header{padding:34px 16px 4px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kicker">contenido corto</div>
+  <h1>Reels</h1>
+  <div class="count" id="count"></div>
+</header>
+
+<div class="filters" id="filters">
+  <button class="chip active" data-cat="all">todos</button>
+  <button class="chip" data-cat="promocionales">promocionales <small id="c-promo"></small></button>
+  <button class="chip" data-cat="backstage">backstage <small id="c-back"></small></button>
+  <button class="chip" data-cat="musica">música <small id="c-mus"></small></button>
+</div>
+
+<div id="stage">
+  <div id="deck"></div>
+</div>
+
+<div class="controls">
+  <button class="arrow" id="prev">‹</button>
+  <div class="dots" id="dots"></div>
+  <button class="arrow" id="next">›</button>
+</div>
+<div class="idxnum" id="idxnum" style="text-align:center;margin:-22px 0 10px"></div>
+<div class="swipehint">arrastrá o usá <b>← →</b> para pasar reels · el activo avanza solo · tocá <b>♥</b></div>
+
+<script>
+/* ───────── DATOS — reemplazá por tus reels reales ─────────
+   seed: poster (cambialo por la URL de tu miniatura)
+   video: (opcional) URL .mp4 vertical para autoplay real
+   ig: link al reel en Instagram                                   */
+const REELS=[
+  {cat:'backstage',     t:'Sesión de fotos con Agustín',  audio:'Despertar (Esa)',        likes:412, comments:38, seed:1041, ig:'#'},
+  {cat:'promocionales', t:'El sonido está tomando forma', audio:'Audio original',         likes:980, comments:74, seed:1052, ig:'#'},
+  {cat:'musica',        t:'Adelanto del próximo single',  audio:'Single 2025 · demo',     likes:1530,comments:121,seed:1063, ig:'#'},
+  {cat:'backstage',     t:'Ensayo general en El Brujo',   audio:'Center People · live',   likes:744, comments:52, seed:1074, ig:'#'},
+  {cat:'promocionales', t:'Anuncio de fecha · Madrid',    audio:'Audio original',         likes:1208,comments:96, seed:1085, ig:'#'},
+  {cat:'musica',        t:'Letra en proceso',             audio:'Voz y guitarra',         likes:633, comments:41, seed:1096, ig:'#'},
+];
+
+const deck=document.getElementById('deck');
+const AUTO_MS=7000;          // duración del "autoplay" por reel
+let order=[], center=0, autoT=null, progStart=0, paused=false;
+
+/* construir tarjetas */
+REELS.forEach((r,i)=>{
+  const el=document.createElement('div');el.className='reel';el.dataset.idx=i;
+  el.innerHTML=`
+    <div class="frame">
+      <div class="media"><img src="https://picsum.photos/seed/${r.seed}/540/960" alt="${r.t}" draggable="false"></div>
+      <div class="veil"></div>
+      <div class="prog"><i></i></div>
+      <div class="head">
+        <div class="av">J</div>
+        <div class="who">juanma_centerpeople<span>${r.cat}</span></div>
+        <span class="live">● reel</span>
+      </div>
+      <div class="wm"><b>Juanma</b><small>& the center people</small></div>
+      <div class="playbtn"></div>
+      <div class="cap">
+        <div class="t">${r.t}</div>
+        <div class="audio"><span class="note">♪</span> ${r.audio}</div>
+      </div>
+      <div class="rail">
+        <button class="act like"><span class="ic"><span class="heart">♥</span></span><span class="n">${fmt(r.likes)}</span></button>
+        <button class="act"><span class="ic">💬</span><span class="n">${r.comments}</span></button>
+        <button class="act"><span class="ic">↗</span><span class="n">compartir</span></button>
+        <button class="act ig"><span class="ic">⌾</span><span class="n">Instagram</span></button>
+      </div>
+    </div>`;
+  el._data=r;el._likes=r.likes;el._liked=false;
+  deck.appendChild(el);
+});
+const cards=[...deck.children];
+
+function fmt(n){return n>=1000?(n/1000).toFixed(1).replace('.0','')+'k':n}
+
+/* ───────── coverflow ───────── */
+function layout(){
+  const N=order.length;
+  cards.forEach(c=>{c.style.opacity='0';c.style.pointerEvents='none';c.classList.remove('center')});
+  order.forEach((cardIdx,p)=>{
+    const c=cards[cardIdx];
+    let off=p-center;
+    if(off>N/2)off-=N; if(off<-N/2)off+=N;       // circular
+    const a=Math.abs(off);
+    if(a>2){c.style.opacity='0';c.style.pointerEvents='none';return;}
+    const x=off*150, z=-a*240, ry=off*-32, sc=off===0?1:.82-a*.06;
+    c.style.transform=`translateX(${x}px) translateZ(${z}px) rotateY(${ry}deg) scale(${sc})`;
+    c.style.opacity = off===0?1:(a===1?.62:.28);
+    c.style.zIndex  = 50-a;
+    c.style.pointerEvents='auto';
+    c.style.filter  = off===0?'none':'brightness(.6) saturate(.7)';
+    if(off===0)c.classList.add('center');
+  });
+  updateUI();
+  restartAuto();
+}
+
+/* ───────── navegación ───────── */
+function go(d){center=(center+d+order.length)%order.length;layout();}
+function setCenter(p){center=((p%order.length)+order.length)%order.length;layout();}
+
+document.getElementById('next').onclick=()=>go(1);
+document.getElementById('prev').onclick=()=>go(-1);
+addEventListener('keydown',e=>{if(e.key==='ArrowRight')go(1);if(e.key==='ArrowLeft')go(-1);});
+
+/* click en tarjeta: vecina -> al centro; central -> abrir IG */
+deck.addEventListener('click',e=>{
+  if(dragMoved)return;
+  const card=e.target.closest('.reel');if(!card)return;
+  const p=order.indexOf(+card.dataset.idx);
+  if(p===center){
+    if(e.target.closest('.like')){toggleLike(card);return;}
+    if(e.target.closest('.act')){/* abrir IG */ if(card._data.ig&&card._data.ig!=='#')open(card._data.ig);return;}
+    if(card._data.ig&&card._data.ig!=='#')open(card._data.ig);
+  }else setCenter(p);
+});
+function open(u){window.open(u,'_blank');}
+
+/* like + burst de corazones */
+function toggleLike(card){
+  const btn=card.querySelector('.like');
+  card._liked=!card._liked;
+  card._likes+=card._liked?1:-1;
+  btn.querySelector('.n').textContent=fmt(card._likes);
+  btn.classList.toggle('liked',card._liked);
+  if(card._liked)burst(card);
+}
+function burst(card){
+  const frame=card.querySelector('.frame');
+  for(let i=0;i<6;i++){
+    const h=document.createElement('div');h.className='floatheart';h.textContent='♥';
+    h.style.right=(18+Math.random()*30)+'px';
+    h.style.setProperty('--r',(Math.random()*60-30)+'deg');
+    h.style.animation=`floatup ${1+Math.random()*0.7}s ease-out forwards`;
+    h.style.animationDelay=(i*0.05)+'s';
+    frame.appendChild(h);setTimeout(()=>h.remove(),1900);
+  }
+}
+
+/* ───────── arrastre / swipe ───────── */
+let down=false,startX=0,dragMoved=false;
+const stage=document.getElementById('stage');
+stage.addEventListener('pointerdown',e=>{down=true;dragMoved=false;startX=e.clientX;paused=true;stage.setPointerCapture(e.pointerId);});
+stage.addEventListener('pointermove',e=>{
+  if(!down)return;const dx=e.clientX-startX;
+  if(Math.abs(dx)>6)dragMoved=true;
+});
+stage.addEventListener('pointerup',e=>{
+  if(!down)return;down=false;paused=false;
+  const dx=e.clientX-startX;
+  if(dx<-50)go(1);else if(dx>50)go(-1);else restartAuto();
+});
+let wheelLock=false;
+stage.addEventListener('wheel',e=>{
+  if(Math.abs(e.deltaX)<Math.abs(e.deltaY))return;
+  e.preventDefault();if(wheelLock)return;wheelLock=true;
+  go(e.deltaX>0?1:-1);setTimeout(()=>wheelLock=false,420);
+},{passive:false});
+
+/* pausar autoplay al mantener apretado el activo */
+deck.addEventListener('pointerdown',e=>{if(e.target.closest('.reel.center')){paused=true;}});
+addEventListener('pointerup',()=>{paused=false;});
+
+/* ───────── autoplay tipo stories ───────── */
+function restartAuto(){
+  cancelAnimationFrame(autoT);progStart=performance.now();
+  const bar=cards[order[center]]?.querySelector('.prog i');
+  if(bar)bar.style.width='0%';
+  step();
+}
+function step(){
+  autoT=requestAnimationFrame(step);
+  if(paused){progStart=performance.now()- (parseFloat(curW())/100*AUTO_MS);return;}
+  const el=(performance.now()-progStart)/AUTO_MS;
+  const bar=cards[order[center]]?.querySelector('.prog i');
+  if(bar)bar.style.width=Math.min(el*100,100)+'%';
+  if(el>=1)go(1);
+}
+function curW(){const b=cards[order[center]]?.querySelector('.prog i');return b?b.style.width||'0':'0';}
+
+/* ───────── filtros ───────── */
+const counts={promocionales:0,backstage:0,musica:0};
+REELS.forEach(r=>counts[r.cat]!==undefined&&counts[r.cat]++);
+document.getElementById('c-promo').textContent='('+counts.promocionales+')';
+document.getElementById('c-back').textContent='('+counts.backstage+')';
+document.getElementById('c-mus').textContent='('+counts.musica+')';
+
+document.getElementById('filters').addEventListener('click',e=>{
+  const b=e.target.closest('.chip');if(!b)return;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  b.classList.add('active');
+  buildOrder(b.dataset.cat);
+});
+function buildOrder(cat){
+  order=cards.map((c,i)=>i).filter(i=>cat==='all'||REELS[i].cat===cat);
+  center=0;layout();
+}
+
+/* ───────── UI ───────── */
+const dotsEl=document.getElementById('dots'),idxnum=document.getElementById('idxnum'),countEl=document.getElementById('count');
+function updateUI(){
+  dotsEl.innerHTML='';
+  order.forEach((_,p)=>{const d=document.createElement('div');d.className='dot'+(p===center?' on':'');
+    d.onclick=()=>setCenter(p);dotsEl.appendChild(d);});
+  idxnum.textContent=String(center+1).padStart(2,'0')+' / '+String(order.length).padStart(2,'0');
+  countEl.textContent=REELS.length+' reels · explorá el deck';
+}
+
+buildOrder('all');
+</script>
+</body>
+</html>

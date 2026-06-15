@@ -28,7 +28,7 @@ La web debe permitir que cada perfil encuentre lo que busca sin atravesar conten
   - Base de datos API: SQLite (migrable a PostgreSQL).
   - Base de datos Umami: PostgreSQL.
   - Analítica: Umami (self-hosted en el mismo Compose).
-  - Email/formulario: Mailgun (cuenta existente del cliente, dominio propio).
+  - Email/formulario: Zoho Mail vía SMTP (plan gratuito con dominio propio).
   - Proxy/deploy: Docker Compose + **Traefik externo** (instancia existente en VPS, red `nexus_main_net`).
   - Desarrollo local: Docker Compose con puertos directos (sin Traefik).
   - Producción: labels Traefik, certificados Let's Encrypt, subdominio desde el inicio.

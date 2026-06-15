@@ -1,4 +1,13 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /prensa-epk/solicitar/
 
-Sitemap: /sitemap-index.xml
+# Crawlers de redes sociales (para previews de OG)
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+Sitemap: https://www.juanmacenterpeople.com/sitemap-index.xml

@@ -10,9 +10,13 @@ interface Props {
   description?: string;
   ogImage?: string;
   noindex?: boolean;
+  jsonLd?: Record<string, any> | Record<string, any>[];
+  breadcrumbs?: Array<{ name: string; url: string }>;
+  hideFooter?: boolean;
+  hideHeader?: boolean;
 }
 
-const { title, description, ogImage, noindex = false } = Astro.props;
+const { title, description, ogImage, noindex = false, jsonLd, breadcrumbs, hideFooter = false, hideHeader = false } = Astro.props;
 
 let siteData: any = null;
 let sections: any[] = [];
@@ -30,9 +34,11 @@ try {
 const bandName = siteData?.band_name ?? "Juanma & The Center People";
 const pageTitle = title ? `${title} | ${bandName}` : bandName;
 const pageDesc = description ?? siteData?.tagline ?? "Rock alternativo peruano";
-const umamiWebsiteId = import.meta.env.UMAMI_WEBSITE_ID ?? "";
-const umamiUrl = import.meta.env.UMAMI_URL ?? "";
-const isProd = import.meta.env.APP_ENV === "production";
+// Leemos en runtime (process.env) para que cambiar UMAMI_* o APP_ENV en .env
+// no requiera rebuild del bundle — basta con recrear el contenedor.
+const umamiWebsiteId = process.env.UMAMI_WEBSITE_ID ?? "";
+const umamiUrl = process.env.UMAMI_URL ?? "";
+const isProd = process.env.APP_ENV === "production";
 ---
 
 <!doctype html>
@@ -40,12 +46,26 @@ const isProd = import.meta.env.APP_ENV === "production";
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="icon" type="image/png" href="/logo-dark.png" />
+    <link rel="apple-touch-icon" href="/logo-dark.png" />
+
+    <!-- Preconnect a Google Fonts: reduce ~100-200ms en first paint -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Preload del logo del hero: reduce LCP -->
+    <link rel="preload" as="image" href="/logo-light.png" fetchpriority="high" />
+
     <SEO
       title={pageTitle}
       description={pageDesc}
       ogImage={ogImage}
       noindex={noindex}
       siteData={siteData}
+      jsonLd={jsonLd}
+      breadcrumbs={breadcrumbs}
     />
     <!-- Umami analytics (solo en producción) -->
     {isProd && umamiWebsiteId && umamiUrl && (
@@ -65,13 +85,15 @@ const isProd = import.meta.env.APP_ENV === "production";
       Ir al contenido principal
     </a>
 
-    <Header bandName={bandName} siteData={siteData} sections={sections} />
+    {!hideHeader && (
+      <Header bandName={bandName} siteData={siteData} sections={sections} />
+    )}
 
     <main id="main-content">
       <slot />
     </main>
 
-    <Footer siteData={siteData} />
+    {!hideFooter && <Footer siteData={siteData} />}
 
     <!-- Reveal animation script -->
     <script>
