@@ -92,7 +92,8 @@ export default function MediaPage() {
   async function uploadFile(file: File) {
     const fd = new FormData();
     fd.append("file", file);
-    if (selectedTypeId) fd.append("media_type_id", String(selectedTypeId));
+    // El backend espera media_type_slug (string), no media_type_id.
+    if (selectedTypeSlug) fd.append("media_type_slug", selectedTypeSlug);
     if (selectedCategoryId) fd.append("category_id", String(selectedCategoryId));
     const res = await upload<{ data: MediaItem }>("/api/admin/media/upload", fd);
     return res.data;
@@ -160,7 +161,8 @@ export default function MediaPage() {
   async function handleZipFile(file: File) {
     const fd = new FormData();
     fd.append("file", file);
-    if (selectedTypeId) fd.append("media_type_id", String(selectedTypeId));
+    // El backend espera media_type_slug (string), no media_type_id.
+    if (selectedTypeSlug) fd.append("media_type_slug", selectedTypeSlug);
     if (selectedCategoryId) fd.append("category_id", String(selectedCategoryId));
     setUploading(true);
     setAlert(null);

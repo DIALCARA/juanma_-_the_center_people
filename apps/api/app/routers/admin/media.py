@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, List
@@ -13,6 +13,8 @@ from ...services.media_processing import (
     validate_image,
     process_image,
     process_zip_images,
+    delete_media_files,
+    detect_source_type,
     ALLOWED_MIME_TYPES,
 )
 from ...schemas.common import ok
@@ -50,8 +52,8 @@ async def list_media(
     type_slug: Optional[str] = None,
     type_id: Optional[int] = None,
     category_id: Optional[int] = None,
-    page: int = 1,
-    page_size: int = 30,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(30, ge=1, le=100),
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
@@ -104,13 +106,12 @@ async def upload_image(
     if not mt:
         raise HTTPException(400, f"Tipo de media no encontrado: {media_type_slug}")
 
-    category_slug = "misc"
-    if category_id:
-        cat = db.query(MediaCategory).filter(MediaCategory.id == category_id).first()
-        if cat:
-            category_slug = cat.slug
+    category_slug = _category_slug_for(db, category_id, mt)
 
-    result = process_image(content, file.filename or "upload", media_type_slug, category_slug)
+    try:
+        result = process_image(content, file.filename or "upload", media_type_slug, category_slug)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
     item = MediaItem(
         media_type_id=mt.id,
@@ -141,11 +142,7 @@ async def upload_multiple(
     if not mt:
         raise HTTPException(400, f"Tipo no encontrado: {media_type_slug}")
 
-    category_slug = "misc"
-    if category_id:
-        cat = db.query(MediaCategory).filter(MediaCategory.id == category_id).first()
-        if cat:
-            category_slug = cat.slug
+    category_slug = _category_slug_for(db, category_id, mt)
 
     created = []
     errors = []
@@ -198,11 +195,7 @@ async def import_zip(
     if not mt:
         raise HTTPException(400, f"Tipo no encontrado: {media_type_slug}")
 
-    category_slug = "misc"
-    if category_id:
-        cat = db.query(MediaCategory).filter(MediaCategory.id == category_id).first()
-        if cat:
-            category_slug = cat.slug
+    category_slug = _category_slug_for(db, category_id, mt)
 
     results = process_zip_images(content, media_type_slug, category_slug)
     created = []
@@ -221,7 +214,10 @@ async def import_zip(
 
     db.commit()
     logger.info(f"ZIP importado: {len(created)} imágenes de {file.filename}")
-    return ok(created, message=f"{len(created)} imágenes importadas del ZIP")
+    return ok(
+        {"imported": len(created), "items": created},
+        message=f"{len(created)} imágenes importadas del ZIP",
+    )
 
 
 @router.post("/video")
@@ -233,6 +229,7 @@ async def create_video(
     mt = db.query(MediaType).filter(MediaType.slug == body.media_type_slug).first()
     if not mt:
         raise HTTPException(400, f"Tipo no encontrado: {body.media_type_slug}")
+    _category_slug_for(db, body.category_id, mt)  # valida que la categoría sea del tipo
     item = MediaItem(
         media_type_id=mt.id,
         category_id=body.category_id,
@@ -241,7 +238,7 @@ async def create_video(
         source_url=body.source_url,
         thumbnail_url=body.thumbnail_url,
         credit_author=body.credit_author,
-        source_type="youtube",
+        source_type=detect_source_type(body.source_url),
         is_featured=body.is_featured,
     )
     db.add(item)
@@ -288,6 +285,8 @@ async def delete_media(
     item = db.query(MediaItem).filter(MediaItem.id == item_id).first()
     if not item:
         raise HTTPException(404, "Elemento no encontrado")
+    # Borrar primero los archivos del disco (si era un upload) para no dejar huérfanos.
+    delete_media_files(item.file_url, item.thumbnail_url, item.source_type)
     db.delete(item)
     db.commit()
     return ok(message="Elemento eliminado")
@@ -312,6 +311,19 @@ async def list_categories(
             query = query.filter(MediaCategory.media_type_id == mt.id)
     cats = query.order_by(MediaCategory.sort_order).all()
     return ok([{"id": c.id, "name": c.name, "slug": c.slug, "media_type_id": c.media_type_id} for c in cats])
+
+
+def _category_slug_for(db: Session, category_id: Optional[int], mt: MediaType) -> str:
+    """Devuelve el slug de la categoría validando que pertenezca al tipo `mt`.
+    Si no hay categoría, usa 'misc'. Lanza 400 si la categoría es de otro tipo."""
+    if not category_id:
+        return "misc"
+    cat = db.query(MediaCategory).filter(MediaCategory.id == category_id).first()
+    if not cat:
+        raise HTTPException(400, "Categoría no encontrada")
+    if cat.media_type_id != mt.id:
+        raise HTTPException(400, "La categoría no pertenece al tipo seleccionado")
+    return cat.slug
 
 
 def _to_dict(m: MediaItem) -> dict:

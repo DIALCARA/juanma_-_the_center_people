@@ -484,14 +484,30 @@ const wallItems = items.map((item: any, index: number) => {
   @media (max-width: 900px) {
     .muro-top {
       grid-template-columns: 1fr;
-      padding: 18px 14px 0;
+      /* Mantener el aire bajo el header global fijo (64px) para que el menú de
+         categorías no quede tapado en móvil. */
+      padding: 76px 10px 0;
     }
 
     .muro-categories {
       justify-content: flex-start;
       overflow-x: auto;
       flex-wrap: nowrap;
-      border-radius: 18px;
+      max-width: 100%;
+      border-radius: 16px;
+      gap: 4px;
+      padding: 6px 8px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .muro-categories::-webkit-scrollbar {
+      display: none;
+    }
+
+    .muro-chip {
+      padding: 7px 11px;
+      font-size: .64rem;
     }
 
     .muro-chip,
@@ -543,6 +559,12 @@ const wallItems = items.map((item: any, index: number) => {
     viewportHeight = window.innerHeight;
   });
 
+  // En móvil acercamos las fotos (menos paneo) y las achicamos para que el muro
+  // sea usable en pantallas chicas.
+  const IS_MOBILE = viewportWidth < 760;
+  const LAYOUT_SCALE = IS_MOBILE ? 0.5 : 1;
+  const TILE_SCALE = IS_MOBILE ? 0.62 : 1;
+
   function escapeHtml(value) {
     return String(value)
       .replaceAll("&", "&amp;")
@@ -555,11 +577,12 @@ const wallItems = items.map((item: any, index: number) => {
     const element = document.createElement("div");
     element.className = "muro-photo";
     element.dataset.cat = item.category;
-    const spot = SPOTS[index % SPOTS.length];
+    const rawSpot = SPOTS[index % SPOTS.length];
+    const spot = [rawSpot[0] * LAYOUT_SCALE, rawSpot[1] * LAYOUT_SCALE];
     const depth = 0.55 + (((index * 37) % 100) / 100) * 0.75;
     const rotation = ((index * 53) % 24) - 12;
-    const width = Math.round(item.width);
-    const height = Math.round(item.height);
+    const width = Math.round(item.width * TILE_SCALE);
+    const height = Math.round(item.height * TILE_SCALE);
     element.innerHTML = `
       <div class="muro-photo__inner" style="width:${width}px;height:${height}px;--dur:${5 + (index % 6)}s;--del:${(index * 0.3).toFixed(1)}s;transform:rotate(${rotation}deg)">
         <img src="${escapeHtml(item.thumb)}" data-full="${escapeHtml(item.src)}" alt="${escapeHtml(item.alt)}" draggable="false">

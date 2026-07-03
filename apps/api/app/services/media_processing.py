@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from PIL import Image
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from ..core.config import get_settings
 from ..core.logging import logger
@@ -69,10 +69,18 @@ def process_image(
     for d in [originals_dir, web_dir, thumb_dir]:
         _ensure_dir(d)
 
-    img = Image.open(io.BytesIO(image_bytes))
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+        img.load()
+    except (UnidentifiedImageError, OSError) as e:
+        raise ValueError(f"El archivo no es una imagen válida: {e}")
+
+    # Respetar la orientación EXIF (fotos verticales de celular se guardan
+    # rotadas si no se aplica esto).
+    img = ImageOps.exif_transpose(img)
     original_width, original_height = img.size
 
-    if img.mode in ("RGBA", "P"):
+    if img.mode in ("RGBA", "P", "LA"):
         img = img.convert("RGB")
 
     # Versión web
@@ -151,3 +159,76 @@ def process_zip_images(
                 logger.error(f"Error procesando {name} del ZIP: {e}")
 
     return results
+
+
+def detect_source_type(url: str) -> str:
+    """Infiere el origen de un video/reel a partir de su URL."""
+    u = (url or "").lower()
+    if "youtube.com" in u or "youtu.be" in u:
+        return "youtube"
+    if "vimeo.com" in u:
+        return "vimeo"
+    if "instagram.com" in u:
+        return "instagram"
+    if "tiktok.com" in u:
+        return "tiktok"
+    return "manual_url"
+
+
+def _url_to_local_path(url: Optional[str]) -> Optional[str]:
+    """Mapea una URL pública de media a su ruta en disco, evitando path traversal.
+    Devuelve None si la URL no pertenece a media_public_url o queda fuera de media_root."""
+    if not url:
+        return None
+    prefix = settings.media_public_url.rstrip("/")
+    if not url.startswith(prefix):
+        return None
+    rel = url[len(prefix):].lstrip("/")
+    base = os.path.abspath(settings.media_root)
+    path = os.path.abspath(os.path.join(base, rel))
+    if path != base and not path.startswith(base + os.sep):
+        return None
+    return path
+
+
+def delete_media_files(
+    file_url: Optional[str],
+    thumbnail_url: Optional[str],
+    source_type: str = "upload",
+) -> int:
+    """Borra del disco los archivos asociados a un MediaItem subido (web, thumbnail
+    y original). Para medios externos (youtube/instagram/etc.) no hay nada que borrar.
+    Devuelve la cantidad de archivos eliminados."""
+    if source_type != "upload":
+        return 0
+
+    removed = 0
+    web_path = _url_to_local_path(file_url)
+    thumb_path = _url_to_local_path(thumbnail_url)
+
+    for p in (web_path, thumb_path):
+        if p and os.path.isfile(p):
+            try:
+                os.remove(p)
+                removed += 1
+            except OSError as e:
+                logger.error(f"No se pudo borrar {p}: {e}")
+
+    # Original conservado en images/{categoria}/originals/{base}.{ext_original}
+    if web_path:
+        web_dir = os.path.dirname(web_path)
+        base_name = os.path.splitext(os.path.basename(web_path))[0]
+        originals_dir = os.path.join(web_dir, "originals")
+        if os.path.isdir(originals_dir):
+            for fname in os.listdir(originals_dir):
+                if os.path.splitext(fname)[0] == base_name:
+                    op = os.path.join(originals_dir, fname)
+                    try:
+                        os.remove(op)
+                        removed += 1
+                    except OSError as e:
+                        logger.error(f"No se pudo borrar original {op}: {e}")
+
+    if removed:
+        logger.info(f"Archivos de media borrados del disco: {removed}")
+    return removed

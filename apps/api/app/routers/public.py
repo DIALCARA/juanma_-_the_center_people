@@ -1,7 +1,7 @@
 """Endpoints públicos del sitio (sin autenticación)."""
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel, EmailStr, Field
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -278,11 +278,17 @@ async def get_media_categories(
 async def get_media(
     type: Optional[str] = None,
     category: Optional[str] = None,
-    page: int = 1,
-    page_size: int = 20,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=120),
     db: Session = Depends(get_db),
 ):
-    query = db.query(MediaItem).filter(MediaItem.is_visible == True)
+    # joinedload de la categoría evita el N+1 al armar _media_to_dict (que usa
+    # m.category.name/slug). Trae todo en una sola query.
+    query = (
+        db.query(MediaItem)
+        .options(joinedload(MediaItem.category))
+        .filter(MediaItem.is_visible == True)
+    )
     if type:
         mt = db.query(MediaType).filter(MediaType.slug == type).first()
         if mt:
@@ -354,6 +360,9 @@ async def get_press_epk(db: Session = Depends(get_db)):
             "description": d.description,
             "thumbnail_url": d.thumbnail_url,
             "access_type": d.access_type,
+            # Solo el material libre expone su URL directa; el restringido pasa
+            # por el flujo de solicitud y nunca filtra la URL del archivo.
+            "file_url": d.file_url if d.access_type == "public" else None,
         } for d in downloads],
     })
 
@@ -400,7 +409,8 @@ class DownloadRequestBody(BaseModel):
     download_asset_id: int
     name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
-    organization: str = Field(..., min_length=2, max_length=200)
+    # Medio/organización es opcional: para material libre no debe ser obligatorio.
+    organization: Optional[str] = Field(None, max_length=200)
     reason: str = Field(..., min_length=5, max_length=500)
     message: Optional[str] = None
 
@@ -413,10 +423,10 @@ async def request_download(
     db: Session = Depends(get_db),
 ):
     name = body.name.strip()
-    organization = body.organization.strip()
+    organization = (body.organization or "").strip() or None
     reason = body.reason.strip()
-    if not name or not organization or not reason:
-        raise HTTPException(400, "Nombre, medio/organización y uso del material son obligatorios")
+    if not name or not reason:
+        raise HTTPException(400, "Nombre y uso del material son obligatorios")
 
     asset = db.query(DownloadAsset).filter(
         DownloadAsset.id == body.download_asset_id,

@@ -41,9 +41,9 @@ const { id } = Astro.params;
         </div>
 
         <div class="mb-6">
-          <label for="organization" class="block font-heading text-bone uppercase tracking-wider text-xs mb-2">Medio / Organización *</label>
+          <label for="organization" class="block font-heading text-bone uppercase tracking-wider text-xs mb-2">Medio / Organización <span class="text-bone-muted normal-case tracking-normal">(opcional)</span></label>
           <input
-            type="text" id="organization" name="organization" required minlength="2" maxlength="150" autocomplete="organization"
+            type="text" id="organization" name="organization" maxlength="150" autocomplete="organization"
             class="w-full bg-black border border-urban-700 text-bone px-4 py-3 font-body text-sm focus:outline-none focus:border-red-band transition-colors placeholder-urban-600"
             placeholder="Nombre del medio, empresa o proyecto"
           />
