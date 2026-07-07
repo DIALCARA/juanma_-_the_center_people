@@ -1,3 +1,4 @@
+name: infra
 ## Docker Compose — PRODUCCIÓN
 ## Integra con el Traefik existente en el VPS (red nexus_main_net).
 ## Uso: docker compose -f infra/docker-compose.prod.yml up -d
