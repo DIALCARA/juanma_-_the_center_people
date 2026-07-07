@@ -24,6 +24,7 @@ class SiteSettingsUpdate(BaseModel):
     cover_image_id: Optional[int] = None
     spotify_url: Optional[str] = None
     youtube_url: Optional[str] = None
+    youtube_music_url: Optional[str] = None
     instagram_url: Optional[str] = None
     tiktok_url: Optional[str] = None
     facebook_url: Optional[str] = None

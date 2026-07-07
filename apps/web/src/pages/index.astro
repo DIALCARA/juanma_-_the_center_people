@@ -2,6 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Marquee from "../components/ui/Marquee.astro";
 import Countdown from "../components/ui/Countdown.astro";
+import ListenButton from "../components/ui/ListenButton.astro";
 import { getHome } from "../lib/api";
 
 let homeData: any = null;
@@ -129,17 +130,11 @@ const showInHome = (slug: string): boolean => {
         {site.tagline ?? ""}
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center hero-cta">
-        {site.spotify_url && (
-          <a
-            href={site.spotify_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="btn-primary"
-            data-umami-event="click_spotify"
-          >
-            Escuchar en Spotify
-          </a>
-        )}
+        <ListenButton
+          spotifyUrl={site.spotify_url}
+          youtubeMusicUrl={site.youtube_music_url}
+          mode="dropdown"
+        />
         <a href="/contacto" class="btn-secondary" data-umami-event="click_contact_booking">
           Contacto / Booking
         </a>

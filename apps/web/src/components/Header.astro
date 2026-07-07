@@ -1,4 +1,6 @@
 ---
+import ListenButton from "./ui/ListenButton.astro";
+
 interface Props {
   bandName: string;
   siteData?: any;
@@ -66,18 +68,14 @@ const navItems = sections.length === 0
         ))}
       </ul>
 
-      <!-- Botón Spotify (desktop) -->
-      {siteData?.spotify_url && (
-        <a
-          href={siteData.spotify_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          class="hidden lg:block btn-primary text-xs py-2"
-          data-umami-event="click_spotify"
-        >
-          Escuchar en Spotify
-        </a>
-      )}
+      <!-- Botón Escuchar (desktop) — selector Spotify / YouTube Music -->
+      <ListenButton
+        spotifyUrl={siteData?.spotify_url}
+        youtubeMusicUrl={siteData?.youtube_music_url}
+        mode="dropdown"
+        compact
+        class="hidden lg:inline-block"
+      />
 
       <!-- Botón menú móvil -->
       <button
@@ -109,18 +107,13 @@ const navItems = sections.length === 0
             </a>
           </li>
         ))}
-        {siteData?.spotify_url && (
-          <li class="pt-2">
-            <a
-              href={siteData.spotify_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="btn-primary text-xs block text-center"
-            >
-              Escuchar en Spotify
-            </a>
-          </li>
-        )}
+        <li class="pt-2">
+          <ListenButton
+            spotifyUrl={siteData?.spotify_url}
+            youtubeMusicUrl={siteData?.youtube_music_url}
+            mode="list"
+          />
+        </li>
       </ul>
     </div>
   </nav>

@@ -29,6 +29,8 @@ class SiteSettings(Base):
         default="https://open.spotify.com/intl-es/artist/2lnewal0FLnYLAnziEcIgI?si=B_GwlY5-QPS2YN4Zhd1LbQ",
     )
     youtube_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Canal de YouTube Music para "Escuchar" (distinto del youtube_url del canal de videos)
+    youtube_music_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     instagram_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     tiktok_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     facebook_url: Mapped[str | None] = mapped_column(String(500), nullable=True)

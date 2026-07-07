@@ -1,0 +1,145 @@
+---
+// Botón "Escuchar" con selector de plataforma (Spotify / YouTube Music).
+// Reemplaza al antiguo enlace fijo "Escuchar en Spotify" para poder ofrecer
+// más de una plataforma sin duplicar CTAs por toda la web.
+//
+// - mode="dropdown": un solo botón que despliega las plataformas (hero, header desktop).
+// - mode="list":     enlaces apilados, sin desplegable (menú móvil).
+// Si solo hay una plataforma configurada, cae a un enlace directo "Escuchar en X".
+// Si no hay ninguna, no renderiza nada.
+
+interface Props {
+  spotifyUrl?: string | null;
+  youtubeMusicUrl?: string | null;
+  mode?: "dropdown" | "list";
+  compact?: boolean; // trigger más pequeño (header)
+  class?: string;
+}
+
+const {
+  spotifyUrl,
+  youtubeMusicUrl,
+  mode = "dropdown",
+  compact = false,
+  class: className = "",
+} = Astro.props;
+
+const platforms = [
+  { name: "Spotify", url: spotifyUrl, event: "click_spotify", dot: "#1DB954" },
+  { name: "YouTube Music", url: youtubeMusicUrl, event: "click_youtube_music", dot: "#FF0000" },
+].filter((p) => !!p.url) as { name: string; url: string; event: string; dot: string }[];
+
+const triggerClass = compact ? "btn-primary text-xs py-2" : "btn-primary";
+---
+
+{platforms.length === 1 && (
+  <a
+    href={platforms[0].url}
+    target="_blank"
+    rel="noopener noreferrer"
+    class:list={[triggerClass, className]}
+    data-umami-event={platforms[0].event}
+  >
+    Escuchar en {platforms[0].name}
+  </a>
+)}
+
+{platforms.length > 1 && mode === "list" && (
+  <div class:list={["flex flex-col gap-2", className]}>
+    {platforms.map((p) => (
+      <a
+        href={p.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn-primary text-xs block text-center"
+        data-umami-event={p.event}
+      >
+        <span class="inline-block w-2 h-2 rounded-full mr-2 align-middle" style={`background:${p.dot}`}></span>
+        Escuchar en {p.name}
+      </a>
+    ))}
+  </div>
+)}
+
+{platforms.length > 1 && mode === "dropdown" && (
+  <div class:list={["relative inline-block", className]} data-listen-root>
+    <button
+      type="button"
+      class:list={[triggerClass, "inline-flex items-center gap-2"]}
+      aria-haspopup="menu"
+      aria-expanded="false"
+      data-listen-trigger
+    >
+      Escuchar
+      <svg class="w-3 h-3 transition-transform" data-listen-caret fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
+    <div
+      class="absolute left-0 mt-2 min-w-[12rem] bg-black-soft border border-urban-800 rounded shadow-lg overflow-hidden z-50 hidden"
+      role="menu"
+      data-listen-menu
+    >
+      {platforms.map((p) => (
+        <a
+          href={p.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          role="menuitem"
+          class="flex items-center gap-2 px-4 py-2.5 text-sm text-bone font-heading uppercase tracking-wider hover:bg-red-band hover:text-bone transition-colors"
+          data-umami-event={p.event}
+        >
+          <span class="inline-block w-2.5 h-2.5 rounded-full" style={`background:${p.dot}`}></span>
+          {p.name}
+        </a>
+      ))}
+    </div>
+  </div>
+)}
+
+<script>
+  // Un solo listener para todas las instancias del selector.
+  function initListen() {
+    const roots = document.querySelectorAll<HTMLElement>("[data-listen-root]");
+
+    function closeAll(except?: HTMLElement) {
+      roots.forEach((root) => {
+        if (root === except) return;
+        root.querySelector("[data-listen-menu]")?.classList.add("hidden");
+        root.querySelector("[data-listen-trigger]")?.setAttribute("aria-expanded", "false");
+        root.querySelector("[data-listen-caret]")?.classList.remove("rotate-180");
+      });
+    }
+
+    roots.forEach((root) => {
+      const trigger = root.querySelector<HTMLElement>("[data-listen-trigger]");
+      const menu = root.querySelector<HTMLElement>("[data-listen-menu]");
+      const caret = root.querySelector<HTMLElement>("[data-listen-caret]");
+      if (!trigger || !menu) return;
+
+      trigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = !menu.classList.contains("hidden");
+        closeAll(root);
+        if (isOpen) {
+          menu.classList.add("hidden");
+          trigger.setAttribute("aria-expanded", "false");
+          caret?.classList.remove("rotate-180");
+        } else {
+          menu.classList.remove("hidden");
+          trigger.setAttribute("aria-expanded", "true");
+          caret?.classList.add("rotate-180");
+        }
+      });
+    });
+
+    document.addEventListener("click", () => closeAll());
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeAll();
+    });
+  }
+
+  initListen();
+  // Re-inicializa si Astro hace navegación por View Transitions.
+  document.addEventListener("astro:page-load", initListen);
+</script>

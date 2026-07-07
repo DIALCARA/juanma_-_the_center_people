@@ -1,5 +1,5 @@
 # Entornos
-.env
+# .env versionado a proposito (repo privado)
 .env.local
 .env.deploy
 .env.*.local

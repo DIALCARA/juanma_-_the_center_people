@@ -17,6 +17,7 @@ interface SiteSettings {
   cover_image_id: number | null;
   spotify_url: string;
   youtube_url: string;
+  youtube_music_url: string;
   instagram_url: string;
   tiktok_url: string;
   facebook_url: string;
@@ -39,6 +40,7 @@ const defaults: SiteSettings = {
   cover_image_id: null,
   spotify_url: "",
   youtube_url: "",
+  youtube_music_url: "",
   instagram_url: "",
   tiktok_url: "",
   facebook_url: "",
@@ -207,9 +209,16 @@ export default function ConfiguracionPage() {
         <section className="card mb-6">
           <h2 className="text-sm font-semibold text-neutral-300 mb-4 pb-2 border-b border-neutral-700">Redes sociales</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {(["spotify_url", "youtube_url", "instagram_url", "tiktok_url", "facebook_url"] as const).map((field) => (
-              <FormField key={field} label={field.replace("_url", "").replace(/^\w/, (c) => c.toUpperCase())} htmlFor={field}>
-                <input id={field} name={field} type="url" className="input" value={form[field]} onChange={handle} placeholder="https://" />
+            {([
+              { field: "spotify_url", label: "Spotify", placeholder: "https://open.spotify.com/artist/..." },
+              { field: "youtube_music_url", label: "YouTube Music", placeholder: "https://music.youtube.com/channel/..." },
+              { field: "youtube_url", label: "YouTube (canal videos)", placeholder: "https://youtube.com/@..." },
+              { field: "instagram_url", label: "Instagram", placeholder: "https://instagram.com/..." },
+              { field: "tiktok_url", label: "TikTok", placeholder: "https://tiktok.com/@..." },
+              { field: "facebook_url", label: "Facebook", placeholder: "https://facebook.com/..." },
+            ] as const).map(({ field, label, placeholder }) => (
+              <FormField key={field} label={label} htmlFor={field}>
+                <input id={field} name={field} type="url" className="input" value={form[field]} onChange={handle} placeholder={placeholder} />
               </FormField>
             ))}
           </div>
