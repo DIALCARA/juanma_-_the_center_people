@@ -111,10 +111,8 @@ async def _send(
 
 
 def _contact_email_role(contact_type: str) -> str:
-    if contact_type in {"booking", "collaboration"}:
-        return "booking"
-    if contact_type == "press":
-        return "press"
+    # All public contact requests go to the shared contact mailbox. The type
+    # remains visible in the subject so the recipient can triage the message.
     return "contact"
 
 
@@ -129,6 +127,11 @@ async def send_contact_notification(msg) -> bool:
     label = tipo_labels.get(msg.contact_type, msg.contact_type)
     role = _contact_email_role(msg.contact_type)
     to_email = _email_for_role(role)
+    subject_category = {
+        "booking": "Booking",
+        "press": "Prensa",
+        "collaboration": "Colaboración",
+    }.get(msg.contact_type, "Contacto")
     html = f"""
     <h2>Nuevo mensaje de contacto — {label}</h2>
     <p><strong>Nombre:</strong> {msg.name}</p>
@@ -139,7 +142,7 @@ async def send_contact_notification(msg) -> bool:
     """
     return await _send(
         to=to_email,
-        subject=f"[Juanma EPK] Nuevo mensaje: {label} de {msg.name}",
+        subject=f"[{subject_category}] [Juanma EPK] Nuevo mensaje: {label} de {msg.name}",
         html=html,
         role=role,
         reply_to=msg.email,

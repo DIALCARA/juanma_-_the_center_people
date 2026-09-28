@@ -52,10 +52,6 @@ class Settings(BaseSettings):
     # Cuentas SMTP por rol. Todas usan SMTP_HOST/SMTP_PORT/SMTP_USE_TLS.
     email_contact: str = ""
     email_contact_password: str = ""
-    email_booking: str = ""
-    email_booking_password: str = ""
-    email_press: str = ""
-    email_press_password: str = ""
     email_admin: str = ""
     email_admin_password: str = ""
     email_noreply: str = ""
