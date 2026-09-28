@@ -55,15 +55,11 @@ const socials = [
       </p>
     </div>
 
-    <!-- Contacto prensa/booking -->
-    {(siteData?.booking_email || siteData?.press_email) && (
+    <!-- Booking y prensa usan el formulario compartido de contacto. -->
+    {(siteData?.contact_email || siteData?.booking_email || siteData?.press_email) && (
       <div class="mt-6 pt-6 border-t border-urban-900 flex flex-col sm:flex-row gap-4 text-xs text-bone-muted">
-        {siteData.booking_email && (
-          <span>Booking: <a href={`mailto:${siteData.booking_email}`} class="hover:text-bone transition-colors">{siteData.booking_email}</a></span>
-        )}
-        {siteData.press_email && (
-          <span>Prensa: <a href={`mailto:${siteData.press_email}`} class="hover:text-bone transition-colors">{siteData.press_email}</a></span>
-        )}
+        <span>Booking: <a href="/contacto?tipo=booking" class="hover:text-bone transition-colors">Formulario de contacto</a></span>
+        <span>Prensa: <a href="/contacto?tipo=prensa" class="hover:text-bone transition-colors">Formulario de contacto</a></span>
       </div>
     )}
   </div>
